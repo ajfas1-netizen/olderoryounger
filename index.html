@@ -57,12 +57,18 @@
   .sh6{bottom:24%; left:9%; --r:8deg; animation-delay:-8s;}
   @media (max-width:560px){ .sh5,.sh6{display:none;} }
   @media (prefers-reduced-motion:reduce){ .scene .grid,.scene .shape{animation:none;} }
-  h1{font-size:40px; line-height:1.02; margin:0; letter-spacing:-1.5px; font-weight:900;
-    text-shadow:0 2px 30px rgba(255,61,139,.18);}
-  .tag{font-weight:900;
+  h1{font-size:clamp(40px,13vw,56px); line-height:.94; margin:0; letter-spacing:-2px; font-weight:900;
+    text-shadow:0 2px 40px rgba(255,61,139,.22);}
+  .hero{text-align:center; padding:14px 0 2px;}
+  .hero-kicker{font-size:12px; font-weight:800; letter-spacing:3px; text-transform:uppercase;
+    color:var(--cyan); margin-bottom:12px;}
+  .hero h1 .tag{display:block; font-size:.58em; line-height:1; margin-top:6px; letter-spacing:-1px; font-weight:900;
     background:linear-gradient(100deg,var(--pink),var(--purple));
     -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:var(--pink);}
-  .sub{color:var(--dim); margin:12px 0 0; font-size:15.5px; line-height:1.5;}
+  .hero-rule{width:72px; height:4px; margin:18px auto 0; border-radius:4px;
+    background:linear-gradient(90deg,var(--pink),var(--purple),var(--cyan));
+    box-shadow:0 4px 18px rgba(165,92,255,.4);}
+  .sub{color:var(--dim); margin:14px auto 0; font-size:15.5px; line-height:1.5; max-width:32ch; text-align:center;}
   .btn{display:block; width:100%; border:0; border-radius:var(--radius); padding:17px;
     font-size:17px; font-weight:800; cursor:pointer; margin-top:12px; color:#fff; letter-spacing:.2px;
     box-shadow:0 8px 20px rgba(0,0,0,.35);
@@ -150,6 +156,37 @@
   .ov-actions .btn{margin-top:0;}
   .ov-box.confirm{border-color:var(--purple);}
   .btn.versus{background:linear-gradient(135deg,#ffb03f,var(--pink)); color:#2a0f18; box-shadow:0 12px 28px rgba(255,140,80,.26);}
+  /* ---------- category picker ---------- */
+  .cat-picker{margin-top:12px; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--radius);}
+  .cat-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
+    background:none; border:0; color:var(--ink); padding:14px 16px; font-size:15px; font-weight:800; cursor:pointer;}
+  .ct-right{display:flex; align-items:center; gap:8px; color:var(--dim); font-weight:700; font-size:13px;}
+  .cat-summary{color:var(--cyan);}
+  .cat-chevron{transition:transform .22s ease; display:inline-block;}
+  .cat-picker.open .cat-chevron{transform:rotate(180deg);}
+  .cat-panel{max-height:0; opacity:0; overflow:hidden; transition:max-height .28s ease, opacity .2s ease; padding:0 16px;}
+  .cat-picker.open .cat-panel{max-height:640px; opacity:1; padding:0 16px 16px;}
+  .cat-quick{display:flex; gap:8px; margin-bottom:12px;}
+  .mini{background:rgba(255,255,255,.06); border:1px solid var(--line); color:var(--ink); border-radius:99px;
+    padding:6px 13px; font-size:12px; font-weight:800; cursor:pointer;}
+  .mini:active{background:rgba(255,255,255,.12);}
+  .cat-grid{display:flex; flex-wrap:wrap; gap:8px;}
+  .cat-chip{display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.04);
+    border:1px solid var(--line); color:var(--dim); border-radius:99px; padding:8px 12px; font-size:13px;
+    font-weight:700; cursor:pointer; transition:transform .1s ease, border-color .12s ease, background .12s ease, color .12s ease;}
+  .cat-chip .cc-n{font-size:11px; color:var(--dim); background:rgba(255,255,255,.06); border-radius:99px; padding:1px 7px;}
+  .cat-chip.on{background:linear-gradient(135deg, rgba(55,219,230,.18), rgba(165,92,255,.18));
+    border-color:rgba(55,219,230,.5); color:var(--ink);}
+  .cat-chip.on .cc-n{color:var(--ink); background:rgba(255,255,255,.15);}
+  .cat-chip:active{transform:scale(.96);}
+  .cat-note{margin-top:12px; font-size:12.5px; color:var(--dim); font-weight:600;}
+  .cat-note.warn{color:var(--yellow);}
+  /* ---------- timeline orientation edges ---------- */
+  .tl-edge{display:flex; align-items:center; gap:10px; margin:8px 2px; font-size:11px; font-weight:800; letter-spacing:1.6px;}
+  .tl-edge::before,.tl-edge::after{content:""; flex:1; height:1px; background:linear-gradient(to right, transparent, var(--line), transparent);}
+  .tl-edge span{white-space:nowrap;}
+  .tl-edge.top span{color:var(--yellow);}
+  .tl-edge.bottom span{color:var(--cyan);}
   /* versus / older-or-younger mode */
   .vs-q{text-align:center; font-size:15px; color:var(--dim); font-weight:700; margin:2px 0 14px;}
   .vs-q b{color:var(--ink);}
@@ -197,11 +234,29 @@
 
   <!-- HOME -->
   <section id="home" class="screen active">
-    <h1>Before My Time<br><span class="tag">(or maybe not)</span></h1>
-    <p class="sub">The pop culture timeline game. Snacks, toys, songs, movies. Some of it is way older than you think.</p>
+    <header class="hero">
+      <div class="hero-kicker">Pop-culture timeline game</div>
+      <h1>Before My Time<span class="tag">(or maybe not)</span></h1>
+      <div class="hero-rule"></div>
+      <p class="sub">Snacks, toys, songs, movies &mdash; some of it is way older than you think.</p>
+    </header>
     <button class="btn primary" onclick="startSolo()">Solo &middot; Streak Mode</button>
     <button class="btn versus" onclick="startVersus()">Older or Younger? &middot; Head&#8209;to&#8209;Head</button>
     <button class="btn secondary" onclick="show('party-setup')">Party &middot; Pass the Phone</button>
+    <div class="cat-picker" id="cat-picker">
+      <button class="cat-toggle" onclick="toggleCatPanel()" aria-expanded="false">
+        <span>Categories in play</span>
+        <span class="ct-right"><span class="cat-summary" id="cat-summary">All</span><span class="cat-chevron">&#9662;</span></span>
+      </button>
+      <div class="cat-panel">
+        <div class="cat-quick">
+          <button class="mini" onclick="setAllCats(true)">Select all</button>
+          <button class="mini" onclick="setAllCats(false)">Clear</button>
+        </div>
+        <div class="cat-grid" id="cat-grid"></div>
+        <div class="cat-note" id="cat-note"></div>
+      </div>
+    </div>
     <div class="mt">
       <span class="pill">Deck <b id="deck-count"></b> cards</span>
       <span class="pill">Best streak <b id="best-streak">0</b></span>
@@ -297,12 +352,34 @@ const store = (() => {
 const MIN_Y = Math.min(...CARDS.map(c=>c.y)), MAX_Y = Math.max(...CARDS.map(c=>c.y));
 function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
+// ---------- categories in play ----------
+const CAT_KEYS = Object.keys(CATEGORIES);
+const CATCOUNTS = CAT_KEYS.reduce((m,k)=>{ m[k] = CARDS.filter(c=>c.c===k).length; return m; }, {});
+const MIN_CARDS = 12; // fewest cards a mode will start with
+function activeCats(){
+  const saved = store.get('cats', null);
+  if (!Array.isArray(saved)) return CAT_KEYS.slice(); // never set → all on
+  return saved.filter(k => CATEGORIES[k]);
+}
+function poolIndices(){ const set = new Set(activeCats()); return CARDS.map((c,i)=>i).filter(i => set.has(CARDS[i].c)); }
+function catCount(){ const set = new Set(activeCats()); let n = 0; for (const c of CARDS) if (set.has(c.c)) n++; return n; }
+function notEnoughCats(){
+  show('home'); // show() dismisses toasts on entry, so navigate first…
+  const p = $('cat-picker'); if (p) p.classList.add('open');
+  toast('bad', 'Not enough cards', 'Open Categories on the home screen and pick a few more.'); // …then surface the message
+}
+
 // Build a deck of card indices: unseen first, sleepers spaced roughly every 8-10 draws.
 function buildDeck(){
   const seen = new Set(store.get('seen', []));
-  let pool = CARDS.map((c,i)=>i);
+  const pool = poolIndices();
   let unseen = pool.filter(i=>!seen.has(CARDS[i].t));
-  if (unseen.length < 30) { store.set('seen', []); unseen = pool; } // deck refresh
+  const refreshAt = Math.max(8, Math.min(30, Math.floor(pool.length/3)));
+  if (unseen.length < refreshAt) { // refresh only the seen entries within this pool
+    const poolTitles = new Set(pool.map(i=>CARDS[i].t));
+    store.set('seen', store.get('seen', []).filter(t=>!poolTitles.has(t)));
+    unseen = pool;
+  }
   const sleepers = shuffle(unseen.filter(i=>CARDS[i].s));
   const normals  = shuffle(unseen.filter(i=>!CARDS[i].s));
   const deck = [];
@@ -362,6 +439,11 @@ function showFlags(){
     (fl.length ? fl.join('<br>') : 'None yet. When a year is revealed, tap "Flag it" if it looks wrong.')+'</div>');
 }
 
+function edgeLabel(where, text){
+  const e = document.createElement('div'); e.className = 'tl-edge ' + where;
+  e.innerHTML = '<span>' + text + '</span>';
+  return e;
+}
 function renderTimeline(el, timeline, interactive, onPlace){
   el.innerHTML = '';
   const frag = document.createDocumentFragment();
@@ -371,6 +453,7 @@ function renderTimeline(el, timeline, interactive, onPlace){
     b.onclick = () => onPlace(idx);
     return b;
   };
+  frag.appendChild(edgeLabel('top', '&uarr; OLDER &middot; earlier years'));
   if (interactive) frag.appendChild(slot(0));
   timeline.forEach((ci, i) => {
     const c = CARDS[ci];
@@ -380,6 +463,7 @@ function renderTimeline(el, timeline, interactive, onPlace){
     frag.appendChild(d);
     if (interactive) frag.appendChild(slot(i+1));
   });
+  frag.appendChild(edgeLabel('bottom', '&darr; NEWER &middot; later years'));
   el.appendChild(frag);
 }
 function highlightNew(el, timelineIndex){
@@ -399,6 +483,7 @@ function insertionIndex(timeline, year){
 // ---------- solo ----------
 let S = null;
 function startSolo(){
+  if (catCount() < MIN_CARDS){ notEnoughCats(); return; }
   S = { deck: buildDeck(), timeline: [], lives: 3, streak: 0, placed: 0, tokens: 1, sinceBonus: 0, cur: null, bonus: false };
   S.timeline.push(S.deck.shift()); // anchor (sleeper spacing guarantees a normal card first)
   drawSolo();
@@ -432,7 +517,7 @@ function renderSolo(){
     $('s-draw').innerHTML =
       '<div class="cat">'+catName(c.c)+'</div>'+
       '<h2 class="card-title">'+c.t+'</h2>'+
-      '<div class="hint">Tap where it lands in your timeline.</div>'+
+      '<div class="hint">Tap where it fits &mdash; oldest at top, newest at bottom.</div>'+
       (S.tokens > 0 ? '<button class="btn ghost small" onclick="useSkip()">Use a Skip</button>' : '');
     renderTimeline($('s-timeline'), S.timeline, true, placeSolo);
   }
@@ -508,6 +593,7 @@ function startParty(){
     .map((el,i) => el.value.trim() || ('Player ' + (i+1)))
     .slice(0, 6);
   if (names.length < 2){ toast('bad', 'Need at least 2 players.'); return; }
+  if (catCount() < Math.max(MIN_CARDS, names.length * 6)){ notEnoughCats(); return; }
   const deck = buildDeck();
   P = { deck, players: names.map(n => ({ name:n, timeline:[deck.shift()], tokens:2 })),
         turn: 0, cur: null, stealing: null, stealTried: [] };
@@ -532,7 +618,7 @@ function renderParty(){
   $('p-draw').innerHTML =
     '<div class="cat">'+catName(c.c)+'</div>'+
     '<h2 class="card-title">'+c.t+'</h2>'+
-    '<div class="hint">'+pl.name+': tap where it lands in your timeline.</div>'+
+    '<div class="hint">'+pl.name+': tap where it fits &mdash; oldest at top, newest at bottom.</div>'+
     (P.stealing == null && pl.tokens > 0 ? '<button class="btn ghost small" onclick="partySkip()">Use a Skip</button>' : '');
   renderTimeline($('p-timeline'), pl.timeline, true, placeParty);
 }
@@ -608,8 +694,38 @@ function copyResult(){
   } else { toast('good', txt); }
 }
 function renderHome(){
-  $('deck-count').textContent = CARDS.length;
   $('best-streak').textContent = store.get('best', 0);
+  renderCatPicker();
+}
+function toggleCatPanel(){
+  const p = $('cat-picker'); const open = p.classList.toggle('open');
+  p.querySelector('.cat-toggle').setAttribute('aria-expanded', open);
+}
+function toggleCat(k){
+  const cur = activeCats();
+  store.set('cats', cur.includes(k) ? cur.filter(x=>x!==k) : cur.concat(k));
+  renderCatPicker();
+}
+function setAllCats(on){ store.set('cats', on ? CAT_KEYS.slice() : []); renderCatPicker(); }
+function renderCatPicker(){
+  const grid = $('cat-grid'); if (!grid) return;
+  const active = new Set(activeCats());
+  grid.innerHTML = CAT_KEYS.map(k => {
+    const on = active.has(k);
+    return '<button class="cat-chip'+(on?' on':'')+'" onclick="toggleCat(\''+k+'\')" aria-pressed="'+on+'">'+
+      '<span class="cc-name">'+CATEGORIES[k]+'</span><span class="cc-n">'+CATCOUNTS[k]+'</span></button>';
+  }).join('');
+  const total = catCount(), nSel = active.size;
+  $('cat-summary').textContent = nSel === 0 ? 'None' : (nSel === CAT_KEYS.length ? 'All' : nSel + ' picked');
+  const note = $('cat-note');
+  if (total < MIN_CARDS){
+    note.className = 'cat-note warn';
+    note.textContent = total === 0 ? 'Pick at least one category to play.' : 'Only ' + total + ' cards selected — add a few more to play.';
+  } else {
+    note.className = 'cat-note';
+    note.textContent = total + ' cards in play · ' + nSel + ' categor' + (nSel === 1 ? 'y' : 'ies');
+  }
+  const dc = $('deck-count'); if (dc) dc.textContent = total;
 }
 
 // quit an in-progress game (with a confirm so a run isn't lost by accident)
@@ -639,12 +755,14 @@ function confirmDialog(title, body, okLabel, onOk){
 // ---------- versus · older or younger (team streak) ----------
 let V = null;
 function startVersus(){
-  V = { queue: shuffle(CARDS.map((c,i)=>i)), streak:0, round:0, a:null, b:null, done:false };
+  const pool = poolIndices();
+  if (pool.length < 4 || new Set(pool.map(i=>CARDS[i].y)).size < 2){ notEnoughCats(); return; }
+  V = { queue: shuffle(pool.slice()), streak:0, round:0, a:null, b:null, done:false };
   drawVersus();
   show('versus');
 }
 function vPull(){
-  if (!V.queue.length) V.queue = shuffle(CARDS.map((c,i)=>i));
+  if (!V.queue.length) V.queue = shuffle(poolIndices());
   return V.queue.pop();
 }
 function drawVersus(){
