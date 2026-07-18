@@ -99,6 +99,8 @@
   .btn.ghost:active{background:rgba(255,255,255,.09);}
   .btn.small{width:auto; display:inline-block; padding:10px 15px; font-size:14px; margin:8px 6px 0 0; border-radius:99px;}
   .btn:disabled{opacity:.4;}
+  .btn .bt-t{display:block; font-size:18px; line-height:1.1;}
+  .btn .bt-s{display:block; font-size:12.5px; font-weight:600; opacity:.82; margin-top:3px;}
   .screen{display:none;}
   .screen.active{display:block; animation:fade .25s ease;}
   @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
@@ -339,9 +341,9 @@
       <p class="sub">Snacks, toys, songs, movies &mdash; some of it is way older than you think.</p>
     </header>
     <button class="btn daily" id="daily-btn" onclick="startDaily()"></button>
-    <button class="btn primary" onclick="startSolo()">Solo &middot; Streak Mode</button>
-    <button class="btn versus" onclick="startVersus()">Older or Younger? &middot; Head&#8209;to&#8209;Head</button>
-    <button class="btn secondary" onclick="show('party-setup')">Party &middot; Pass the Phone</button>
+    <button class="btn primary" onclick="startSolo()"><span class="bt-t">Line &rsquo;Em Up</span><span class="bt-s">Solo &middot; build the timeline</span></button>
+    <button class="btn versus" onclick="startVersus()"><span class="bt-t">Older or Younger?</span><span class="bt-s">Head&#8209;to&#8209;head &middot; pick the older one</span></button>
+    <button class="btn secondary" onclick="show('party-setup')"><span class="bt-t">Party Pass</span><span class="bt-s">Pass the phone &middot; first to 10</span></button>
     <div class="cat-picker" id="cat-picker">
       <button class="cat-toggle" onclick="toggleCatPanel()" aria-expanded="false">
         <span>Categories in play</span>
@@ -357,7 +359,6 @@
       </div>
     </div>
     <div class="mt">
-      <span class="pill">Deck <b id="deck-count"></b> cards</span>
       <span class="pill">Best streak <b id="best-streak">0</b></span>
     </div>
     <button class="btn ghost small" style="width:100%;margin-top:12px" onclick="show('stats')">View stats &amp; badges</button>
@@ -384,7 +385,7 @@
 
   <!-- PARTY SETUP -->
   <section id="party-setup" class="screen">
-    <h1 style="font-size:26px">Pass the Phone</h1>
+    <h1 style="font-size:26px">Party Pass</h1>
     <p class="sub">2 to 6 players or teams. Place cards into your own timeline. Miss, and the next player can steal. First to 10 wins.</p>
     <div id="player-inputs"></div>
     <button class="btn ghost small" onclick="addPlayerInput()">+ Add player</button>
@@ -420,7 +421,7 @@
   <!-- DAILY CHALLENGE -->
   <section id="daily" class="screen">
     <div class="topbar">
-      <span class="brand">Daily Challenge</span>
+      <span class="brand">Daily Five</span>
       <button class="quit" onclick="confirmQuit()">&times; Quit</button>
     </div>
     <div class="hud">
@@ -967,7 +968,7 @@ function renderHome(){
   const drec = store.get('daily:' + todayKey(), null), dstreak = store.get('dailyStreak', 0);
   const db = $('daily-btn');
   if (db) db.innerHTML =
-    '<span class="db-l"><span class="db-badge">DAILY</span>#' + dailyNumber() + '</span>' +
+    '<span class="db-l"><span class="db-badge">DAILY FIVE</span>#' + dailyNumber() + '</span>' +
     '<span class="db-r">' + (drec ? ('&#10003; ' + drec.score + '/5 today') : 'Play today’s five') +
       (dstreak > 1 ? (' &middot; &#128293;' + dstreak) : '') + '</span>';
   updateSoundUI();
