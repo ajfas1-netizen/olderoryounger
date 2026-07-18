@@ -116,6 +116,36 @@
   .ov-actions{display:flex; gap:10px; margin-top:22px;}
   .ov-actions .btn{margin-top:0;}
   .ov-box.confirm{border-color:var(--purple);}
+  .btn.versus{background:linear-gradient(135deg,#ffb03f,var(--pink)); color:#2a0f18; box-shadow:0 12px 28px rgba(255,140,80,.26);}
+  /* versus / older-or-younger mode */
+  .vs-q{text-align:center; font-size:15px; color:var(--dim); font-weight:700; margin:2px 0 14px;}
+  .vs-q b{color:var(--ink);}
+  .vs-card{position:relative; width:100%; text-align:center; cursor:pointer;
+    background:linear-gradient(180deg, rgba(40,34,70,.96), rgba(23,20,42,.96));
+    border:1px solid rgba(255,255,255,.12); border-radius:18px; padding:22px 16px;
+    box-shadow:0 14px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.06);
+    transition:transform .1s ease, border-color .15s ease, box-shadow .15s ease, opacity .2s ease;}
+  .vs-card:hover{border-color:rgba(165,92,255,.5);}
+  .vs-card:active{transform:scale(.99);}
+  .vs-card .cat{margin-bottom:10px;}
+  .vs-card .vt{font-size:22px; font-weight:800; line-height:1.16; letter-spacing:-.3px;}
+  .vs-card .tag-ow{display:none; margin-top:10px; font-size:11px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase;}
+  .vs-card .vyear{display:none; font-size:30px; font-weight:900; margin-top:6px; letter-spacing:-1px; color:var(--yellow);}
+  .vs-card .vfact{display:none; color:var(--dim); font-size:13.5px; line-height:1.42; margin-top:8px;}
+  .vs-card.reveal{cursor:default;}
+  .vs-card.reveal .tag-ow,.vs-card.reveal .vyear,.vs-card.reveal .vfact{display:block;}
+  .vs-card.older{border-color:var(--green); box-shadow:0 0 0 1px var(--green), 0 14px 34px rgba(0,0,0,.5);}
+  .vs-card.older .tag-ow{color:var(--green);} .vs-card.older .vyear{color:var(--green);}
+  .vs-card.newer{opacity:.62;}
+  .vs-card.newer .tag-ow{color:var(--dim);} .vs-card.newer .vyear{color:var(--dim);}
+  .vs-badge{display:flex; align-items:center; justify-content:center; margin:12px 0;}
+  .vs-badge span{background:linear-gradient(135deg,var(--pink),var(--purple)); color:#fff;
+    font-weight:900; font-size:14px; letter-spacing:1.5px; padding:7px 17px; border-radius:99px;
+    box-shadow:0 6px 16px rgba(255,61,139,.35);}
+  .vs-banner{border-radius:14px; padding:14px; font-weight:800; font-size:15.5px; text-align:center; line-height:1.35; margin-top:14px;}
+  .vs-banner.good{background:rgba(79,224,160,.12); border:1px solid rgba(79,224,160,.35); color:var(--green);}
+  .vs-banner.bad{background:rgba(255,92,114,.12); border:1px solid rgba(255,92,114,.35); color:var(--red);}
+  .vs-end{display:block; text-align:center; margin-top:12px; font-size:14px;}
 </style>
 </head>
 <body>
@@ -126,6 +156,7 @@
     <h1>Before My Time<br><span class="tag">(or maybe not)</span></h1>
     <p class="sub">The pop culture timeline game. Snacks, toys, songs, movies. Some of it is way older than you think.</p>
     <button class="btn primary" onclick="startSolo()">Solo &middot; Streak Mode</button>
+    <button class="btn versus" onclick="startVersus()">Older or Younger? &middot; Head&#8209;to&#8209;Head</button>
     <button class="btn secondary" onclick="show('party-setup')">Party &middot; Pass the Phone</button>
     <div class="mt">
       <span class="pill">Deck <b id="deck-count"></b> cards</span>
@@ -175,6 +206,22 @@
     </div>
     <div class="draw" id="p-draw"></div>
     <div class="timeline" id="p-timeline"></div>
+  </section>
+
+  <!-- VERSUS · Older or Younger -->
+  <section id="versus" class="screen">
+    <div class="topbar">
+      <span class="brand">Older or Younger?</span>
+      <button class="quit" onclick="confirmQuit()">&times; Quit</button>
+    </div>
+    <div class="hud">
+      <span class="pill">Round <b id="v-round"></b></span>
+      <span class="pill streak">Streak <b id="v-streak"></b></span>
+      <span class="pill">Best <b id="v-best"></b></span>
+    </div>
+    <div class="vs-q">Which one is <b>older</b>? Tap it.</div>
+    <div id="v-cards"></div>
+    <div id="v-result"></div>
   </section>
 
   <!-- GAME OVER -->
@@ -537,6 +584,78 @@ function confirmDialog(title, body, okLabel, onOk){
   ov.appendChild(box);
   ov.addEventListener('click', () => ov.remove()); // tap outside = cancel
   document.body.appendChild(ov);
+}
+
+// ---------- versus · older or younger (team streak) ----------
+let V = null;
+function startVersus(){
+  V = { queue: shuffle(CARDS.map((c,i)=>i)), streak:0, round:0, a:null, b:null, done:false };
+  drawVersus();
+  show('versus');
+}
+function vPull(){
+  if (!V.queue.length) V.queue = shuffle(CARDS.map((c,i)=>i));
+  return V.queue.pop();
+}
+function drawVersus(){
+  let a = vPull(), b = vPull(), guard = 0;
+  while (CARDS[a].y === CARDS[b].y && guard++ < 40) b = vPull(); // never a tie: always a right answer
+  V.a = a; V.b = b; V.done = false; V.round++;
+  renderVersus();
+}
+function vCardHtml(key, c){
+  return '<div class="vs-card" id="vc-'+key+'">'+
+    '<div class="cat">'+catName(c.c)+'</div>'+
+    '<div class="vt">'+c.t+'</div>'+
+    '<div class="tag-ow"></div>'+
+    '<div class="vyear">'+c.y+'</div>'+
+    '<div class="vfact">'+c.f+'</div>'+
+  '</div>';
+}
+function renderVersus(){
+  $('v-round').textContent = V.round;
+  $('v-streak').textContent = V.streak;
+  $('v-best').textContent = store.get('bestVersus', 0);
+  $('v-cards').innerHTML =
+    vCardHtml('a', CARDS[V.a]) + '<div class="vs-badge"><span>VS</span></div>' + vCardHtml('b', CARDS[V.b]);
+  $('v-result').innerHTML = '';
+  $('vc-a').onclick = () => chooseVersus('a');
+  $('vc-b').onclick = () => chooseVersus('b');
+  window.scrollTo(0, 0);
+}
+function chooseVersus(key){
+  if (!V || V.done) return;
+  V.done = true;
+  const ca = CARDS[V.a], cb = CARDS[V.b];
+  markSeen(V.a); markSeen(V.b);
+  const aOlder = ca.y < cb.y;               // smaller year = older
+  const correct = (key === (aOlder ? 'a' : 'b'));
+  const elA = $('vc-a'), elB = $('vc-b');
+  elA.onclick = null; elB.onclick = null;
+  elA.classList.add('reveal', aOlder ? 'older' : 'newer');
+  elB.classList.add('reveal', aOlder ? 'newer' : 'older');
+  elA.querySelector('.tag-ow').textContent = aOlder ? 'Older' : 'Newer';
+  elB.querySelector('.tag-ow').textContent = aOlder ? 'Newer' : 'Older';
+  const older = aOlder ? ca : cb, gap = Math.abs(ca.y - cb.y);
+  const gapTxt = gap + ' year' + (gap === 1 ? '' : 's');
+  if (correct){
+    V.streak++;
+    const best = store.get('bestVersus', 0);
+    if (V.streak > best) store.set('bestVersus', V.streak);
+    $('v-streak').textContent = V.streak;
+    $('v-best').textContent = store.get('bestVersus', 0);
+    $('v-result').innerHTML =
+      '<div class="vs-banner good">Correct — ' + older.t + ' is older by ' + gapTxt + '.</div>' +
+      '<button class="btn primary" onclick="drawVersus()">Next matchup</button>';
+  } else {
+    lastResult = { mode:'versus', streak:V.streak };
+    $('v-result').innerHTML =
+      '<div class="vs-banner bad">Nope — ' + older.t + ' (' + older.y + ') is older, by ' + gapTxt + '.</div>' +
+      '<span class="vs-end pill">Streak ended at <b>' + V.streak + '</b> &middot; best <b>' + store.get('bestVersus', 0) + '</b></span>' +
+      '<button class="btn versus" onclick="startVersus()">Play again</button>' +
+      '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
+  }
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
 // init
