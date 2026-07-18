@@ -3,54 +3,76 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#12101f">
+<meta name="theme-color" content="#0b0a14">
 <title>Before My Time (or maybe not)</title>
 <link rel="manifest" href="manifest.json">
 <style>
   :root{
-    --bg:#12101f; --panel:#1d1a30; --panel2:#252140; --ink:#f2eefb; --dim:#9b93b8;
-    --pink:#ff4f9a; --cyan:#3fd8e0; --yellow:#ffd24f; --green:#5ee29a; --red:#ff6363;
-    --radius:14px;
+    --bg:#0b0a14; --panel:#17142a; --panel2:#221d3d; --line:rgba(255,255,255,.08);
+    --ink:#f4f1fb; --dim:#a79ecb;
+    --pink:#ff3d8b; --purple:#a55cff; --cyan:#37dbe6; --yellow:#ffcf3f; --green:#4fe0a0; --red:#ff5c72;
+    --radius:16px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+  html,body{margin:0; padding:0; color:var(--ink);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
-  body{min-height:100vh; padding-bottom:env(safe-area-inset-bottom);}
+  body{min-height:100vh; padding-bottom:env(safe-area-inset-bottom);
+    background:
+      radial-gradient(1100px 620px at 12% -8%, rgba(165,92,255,.30), transparent 60%),
+      radial-gradient(900px 600px at 100% 110%, rgba(55,219,230,.16), transparent 55%),
+      radial-gradient(680px 480px at 92% -2%, rgba(255,61,139,.20), transparent 55%),
+      var(--bg);
+    background-attachment:fixed;}
   .wrap{max-width:520px; margin:0 auto; padding:16px;}
-  h1{font-size:34px; line-height:1.05; margin:0; letter-spacing:-1px; font-weight:800;}
-  .tag{color:var(--pink); font-weight:700;}
-  .sub{color:var(--dim); margin:10px 0 0; font-size:15px;}
-  .btn{display:block; width:100%; border:0; border-radius:var(--radius); padding:16px;
-    font-size:17px; font-weight:700; cursor:pointer; margin-top:12px; color:#161225;}
-  .btn.primary{background:linear-gradient(135deg,var(--pink),#ff8f4f);}
-  .btn.secondary{background:linear-gradient(135deg,var(--cyan),#7fe0a8); }
-  .btn.ghost{background:var(--panel2); color:var(--ink);}
-  .btn.small{width:auto; display:inline-block; padding:10px 14px; font-size:14px; margin:6px 6px 0 0;}
+  h1{font-size:40px; line-height:1.02; margin:0; letter-spacing:-1.5px; font-weight:900;
+    text-shadow:0 2px 30px rgba(255,61,139,.18);}
+  .tag{font-weight:900;
+    background:linear-gradient(100deg,var(--pink),var(--purple));
+    -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:var(--pink);}
+  .sub{color:var(--dim); margin:12px 0 0; font-size:15.5px; line-height:1.5;}
+  .btn{display:block; width:100%; border:0; border-radius:var(--radius); padding:17px;
+    font-size:17px; font-weight:800; cursor:pointer; margin-top:12px; color:#fff; letter-spacing:.2px;
+    box-shadow:0 8px 20px rgba(0,0,0,.35);
+    transition:transform .08s ease, box-shadow .2s ease, filter .15s ease;}
+  .btn:hover{filter:brightness(1.05);}
+  .btn:active{transform:translateY(1px) scale(.994);}
+  .btn.primary{background:linear-gradient(135deg,var(--pink),var(--purple)); box-shadow:0 12px 28px rgba(255,61,139,.32);}
+  .btn.secondary{background:linear-gradient(135deg,var(--cyan),var(--green)); color:#08201f; box-shadow:0 12px 28px rgba(55,219,230,.24);}
+  .btn.ghost{background:rgba(255,255,255,.05); color:var(--ink); border:1px solid var(--line); box-shadow:none;}
+  .btn.ghost:active{background:rgba(255,255,255,.09);}
+  .btn.small{width:auto; display:inline-block; padding:10px 15px; font-size:14px; margin:8px 6px 0 0; border-radius:99px;}
   .btn:disabled{opacity:.4;}
   .screen{display:none;}
   .screen.active{display:block; animation:fade .25s ease;}
   @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
   .hud{display:flex; gap:8px; align-items:center; justify-content:space-between; margin:4px 0 12px; flex-wrap:wrap;}
-  .pill{background:var(--panel); border-radius:99px; padding:7px 13px; font-size:13px; font-weight:700; color:var(--dim);}
+  .pill{background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:99px; padding:8px 14px; font-size:13px; font-weight:700; color:var(--dim);}
   .pill b{color:var(--ink);}
   .pill.lives b{color:var(--red);} .pill.streak b{color:var(--yellow);} .pill.tokens b{color:var(--cyan);}
-  .draw{background:var(--panel); border-radius:var(--radius); padding:18px; text-align:center;
-    border:2px solid var(--panel2); position:sticky; top:8px; z-index:5; box-shadow:0 8px 24px rgba(0,0,0,.45);}
-  .cat{display:inline-block; font-size:12px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
-    color:var(--cyan); margin-bottom:6px;}
-  .card-title{font-size:24px; font-weight:800; line-height:1.15; margin:0;}
+  .draw{background:linear-gradient(180deg, rgba(40,34,70,.96), rgba(23,20,42,.96));
+    border-radius:20px; padding:24px 18px; text-align:center;
+    border:1px solid rgba(255,255,255,.12); position:sticky; top:10px; z-index:5;
+    box-shadow:0 20px 46px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07), 0 0 40px rgba(165,92,255,.10);}
+  .cat{display:inline-block; font-size:11px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase;
+    color:var(--cyan); background:rgba(55,219,230,.12); border:1px solid rgba(55,219,230,.28);
+    padding:5px 12px; border-radius:99px; margin-bottom:14px;}
+  .card-title{font-size:27px; font-weight:800; line-height:1.13; margin:0; letter-spacing:-.5px;}
   .hint{color:var(--dim); font-size:13px; margin-top:8px;}
   .timeline{margin-top:14px;}
-  .tl-card{background:var(--panel2); border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:12px;}
-  .tl-card .yr{font-weight:800; font-size:18px; color:var(--yellow); min-width:52px;}
+  .tl-card{background:linear-gradient(180deg, rgba(34,29,61,.9), rgba(25,21,45,.9)); border:1px solid var(--line);
+    border-radius:14px; padding:11px 13px; display:flex; align-items:center; gap:13px; box-shadow:0 4px 14px rgba(0,0,0,.28);}
+  .tl-card .yr{font-weight:900; font-size:18px; color:var(--yellow); min-width:56px; text-align:center;
+    background:rgba(255,207,63,.10); border:1px solid rgba(255,207,63,.20); border-radius:9px; padding:6px 4px;}
   .tl-card .nm{font-size:15px; font-weight:600;}
   .tl-card .c{display:block; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
   .tl-card.new{outline:2px solid var(--green); animation:pop .5s ease;}
   .tl-card.reveal{outline:2px solid var(--red);}
   @keyframes pop{0%{transform:scale(.95);} 60%{transform:scale(1.02);} 100%{transform:none;}}
   .slot{display:block; width:100%; border:2px dashed #453e6b; background:transparent; color:var(--dim);
-    border-radius:10px; padding:9px; margin:8px 0; font-size:13px; font-weight:700; cursor:pointer;}
-  .slot:active{border-color:var(--pink); color:var(--pink);}
+    border-radius:10px; padding:10px; margin:8px 0; font-size:13px; font-weight:700; cursor:pointer;
+    transition:border-color .12s ease, color .12s ease, background .12s ease;}
+  .slot:hover{border-color:var(--purple); color:var(--ink);}
+  .slot:active{border-color:var(--pink); color:var(--pink); background:rgba(255,61,139,.06);}
   .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:24px; width:min(480px,92vw);
     background:var(--panel); border:2px solid var(--panel2); border-radius:var(--radius); padding:14px 16px;
     z-index:50; box-shadow:0 12px 30px rgba(0,0,0,.6); animation:fade .25s ease;}
@@ -84,6 +106,16 @@
   .big-num{font-size:56px; font-weight:900; text-align:center; margin:8px 0; color:var(--yellow);}
   .center{text-align:center;}
   .mt{margin-top:16px;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:2px 0 14px;}
+  .brand{font-size:14px; font-weight:800; letter-spacing:-.2px; color:var(--dim);}
+  .quit{display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.05);
+    border:1px solid var(--line); color:var(--ink); border-radius:99px; padding:8px 15px;
+    font-size:13px; font-weight:800; cursor:pointer; transition:.12s ease;}
+  .quit:hover{border-color:rgba(255,92,114,.5); color:var(--red);}
+  .quit:active{background:rgba(255,92,114,.14);}
+  .ov-actions{display:flex; gap:10px; margin-top:22px;}
+  .ov-actions .btn{margin-top:0;}
+  .ov-box.confirm{border-color:var(--purple);}
 </style>
 </head>
 <body>
@@ -105,6 +137,10 @@
 
   <!-- SOLO -->
   <section id="solo" class="screen">
+    <div class="topbar">
+      <span class="brand">Before My Time</span>
+      <button class="quit" onclick="confirmQuit()">&times; Quit</button>
+    </div>
     <div class="hud">
       <span class="pill lives">Lives <b id="s-lives"></b></span>
       <span class="pill streak">Streak <b id="s-streak"></b></span>
@@ -127,6 +163,10 @@
 
   <!-- PARTY -->
   <section id="party" class="screen">
+    <div class="topbar">
+      <span class="brand">Before My Time</span>
+      <button class="quit" onclick="confirmQuit()">&times; Quit</button>
+    </div>
     <div id="p-steal"></div>
     <div class="player-tag" id="p-name"></div>
     <div class="hud">
@@ -473,6 +513,30 @@ function copyResult(){
 function renderHome(){
   $('deck-count').textContent = CARDS.length;
   $('best-streak').textContent = store.get('best', 0);
+}
+
+// quit an in-progress game (with a confirm so a run isn't lost by accident)
+function confirmQuit(){
+  confirmDialog('Quit this game?', "Your current run won't be saved.", 'Quit', () => { dismissToast(); show('home'); });
+}
+function confirmDialog(title, body, okLabel, onOk){
+  dismissToast();
+  const ov = document.createElement('div'); ov.className = 'overlay';
+  const box = document.createElement('div'); box.className = 'ov-box confirm';
+  box.innerHTML =
+    '<div class="ov-kicker" style="color:var(--purple)">Hold up</div>'+
+    '<div class="ov-title" style="margin-top:8px">'+title+'</div>'+
+    '<div class="ov-fact">'+body+'</div>';
+  const actions = document.createElement('div'); actions.className = 'ov-actions';
+  const cancel = document.createElement('button'); cancel.className = 'btn ghost'; cancel.textContent = 'Keep playing';
+  const ok = document.createElement('button'); ok.className = 'btn primary'; ok.textContent = okLabel;
+  cancel.onclick = (e) => { e.stopPropagation(); ov.remove(); };
+  ok.onclick = (e) => { e.stopPropagation(); ov.remove(); if (onOk) onOk(); };
+  actions.appendChild(cancel); actions.appendChild(ok); box.appendChild(actions);
+  box.addEventListener('click', (e) => e.stopPropagation());
+  ov.appendChild(box);
+  ov.addEventListener('click', () => ov.remove()); // tap outside = cancel
+  document.body.appendChild(ov);
 }
 
 // init
