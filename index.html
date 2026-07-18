@@ -1113,8 +1113,8 @@ function chooseVersus(key){
 // Supabase project, run the SQL in SCOREBOARD_SETUP.md, then fill in these
 // two public values (or set window.BMT_SCOREBOARD before this script runs):
 const SCOREBOARD = (typeof window !== 'undefined' && window.BMT_SCOREBOARD) || {
-  url: '',   // e.g. 'https://YOURPROJECT.supabase.co'
-  key: ''    // your project's public anon key (safe to expose)
+  url: 'https://gkeemnramnkmrglnayjy.supabase.co',
+  key: 'sb_publishable_2J9GaPurlifR6dpWNLnJng_cbr8TWz_' // publishable (public) key — safe to expose; data protected by RLS
 };
 const scoreboardOn = () => !!(SCOREBOARD.url && SCOREBOARD.key);
 function playerName(){ return (store.get('name', '') || '').trim().slice(0, 16); }
