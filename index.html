@@ -594,9 +594,15 @@ function endParty(winner, msg){
 // ---------- shared ----------
 let lastResult = null;
 function copyResult(){
-  const txt = lastResult && lastResult.mode === 'solo'
-    ? 'Before My Time (or maybe not): I placed ' + lastResult.placed + ' cards. Think you know when things happened? You do not.'
-    : 'Before My Time (or maybe not): ' + (lastResult && lastResult.winner ? lastResult.winner + ' took the table.' : 'We played. It got loud.');
+  let txt;
+  if (lastResult && lastResult.mode === 'solo'){
+    txt = 'Before My Time (or maybe not): I placed ' + lastResult.placed + ' cards. Think you know when things happened? You do not.';
+  } else if (lastResult && lastResult.mode === 'versus'){
+    const n = lastResult.streak;
+    txt = 'Before My Time (or maybe not): I called ' + n + ' "which is older?" matchup' + (n === 1 ? '' : 's') + ' right in a row. Think you can beat it?';
+  } else {
+    txt = 'Before My Time (or maybe not): ' + (lastResult && lastResult.winner ? lastResult.winner + ' took the table.' : 'We played. It got loud.');
+  }
   if (navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(txt).then(()=>toast('good','Copied.','Paste it somewhere braggy.'));
   } else { toast('good', txt); }
@@ -696,6 +702,7 @@ function chooseVersus(key){
     $('v-result').innerHTML =
       '<div class="vs-banner bad">Nope — ' + older.t + ' (' + older.y + ') is older, by ' + gapTxt + '.</div>' +
       '<span class="vs-end pill">Streak ended at <b>' + V.streak + '</b> &middot; best <b>' + store.get('bestVersus', 0) + '</b></span>' +
+      '<button class="btn secondary" onclick="copyResult()">Copy result</button>' +
       '<button class="btn versus" onclick="startVersus()">Play again</button>' +
       '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
   }
