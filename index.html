@@ -187,6 +187,26 @@
   .tl-edge span{white-space:nowrap;}
   .tl-edge.top span{color:var(--yellow);}
   .tl-edge.bottom span{color:var(--cyan);}
+  /* ---------- daily challenge ---------- */
+  .btn.daily{background:linear-gradient(135deg, rgba(255,207,63,.16), rgba(255,61,139,.16));
+    border:1px solid rgba(255,207,63,.45); color:var(--ink); display:flex; align-items:center;
+    justify-content:space-between; gap:10px; box-shadow:0 10px 26px rgba(0,0,0,.3);}
+  .btn.daily .db-l{display:flex; align-items:center; font-size:16px; font-weight:800;}
+  .btn.daily .db-badge{font-size:11px; font-weight:900; letter-spacing:1.5px;
+    background:linear-gradient(135deg,var(--yellow),#ff9d3f); color:#2a1400; padding:3px 9px; border-radius:99px; margin-right:9px;}
+  .btn.daily .db-r{font-size:13px; color:var(--dim); font-weight:700; text-align:right;}
+  .d-dots{display:inline-flex; gap:5px; align-items:center;}
+  .d-dots .dot{width:9px; height:9px; border-radius:50%; background:rgba(255,255,255,.2);}
+  .d-dots .dot.ok{background:var(--green);} .d-dots .dot.no{background:var(--red);}
+  .d-dots .dot.cur{background:var(--cyan); box-shadow:0 0 0 3px rgba(55,219,230,.22);}
+  .daily-done{text-align:center; background:linear-gradient(180deg, rgba(40,34,70,.92), rgba(23,20,42,.92));
+    border:1px solid var(--line); border-radius:18px; padding:24px 18px; margin-top:14px; box-shadow:0 16px 40px rgba(0,0,0,.5);}
+  .dd-score{font-size:60px; font-weight:900; color:var(--yellow); line-height:1; letter-spacing:-2px;}
+  .dd-score span{font-size:26px; color:var(--dim); letter-spacing:0;}
+  .dd-emoji{font-size:26px; letter-spacing:6px; margin-top:12px;}
+  .dd-streak{margin-top:12px; font-weight:800; color:var(--pink);}
+  .dd-next{margin-top:16px; color:var(--dim); font-size:13px;}
+  .dd-next b{color:var(--cyan); font-variant-numeric:tabular-nums;}
   /* versus / older-or-younger mode */
   .vs-q{text-align:center; font-size:15px; color:var(--dim); font-weight:700; margin:2px 0 14px;}
   .vs-q b{color:var(--ink);}
@@ -240,6 +260,7 @@
       <div class="hero-rule"></div>
       <p class="sub">Snacks, toys, songs, movies &mdash; some of it is way older than you think.</p>
     </header>
+    <button class="btn daily" id="daily-btn" onclick="startDaily()"></button>
     <button class="btn primary" onclick="startSolo()">Solo &middot; Streak Mode</button>
     <button class="btn versus" onclick="startVersus()">Older or Younger? &middot; Head&#8209;to&#8209;Head</button>
     <button class="btn secondary" onclick="show('party-setup')">Party &middot; Pass the Phone</button>
@@ -262,7 +283,8 @@
       <span class="pill">Best streak <b id="best-streak">0</b></span>
     </div>
     <p class="footer-note">Gen X pack v1 &middot; Every year verified, no guesses shipped.<br>
-      <button class="flag" onclick="showFlags()">View flagged cards</button></p>
+      <button class="flag" onclick="showFlags()">View flagged cards</button>
+      &middot; <button class="flag" id="fx-toggle" onclick="toggleFx()">Sound on</button></p>
   </section>
 
   <!-- SOLO -->
@@ -305,6 +327,21 @@
     </div>
     <div class="draw" id="p-draw"></div>
     <div class="timeline" id="p-timeline"></div>
+  </section>
+
+  <!-- DAILY CHALLENGE -->
+  <section id="daily" class="screen">
+    <div class="topbar">
+      <span class="brand">Daily Challenge</span>
+      <button class="quit" onclick="confirmQuit()">&times; Quit</button>
+    </div>
+    <div class="hud">
+      <span class="pill">Daily <b id="d-num"></b></span>
+      <span class="pill" id="d-progress"></span>
+    </div>
+    <div class="vs-q">Which one is <b>older</b>? Tap it.</div>
+    <div id="d-cards"></div>
+    <div id="d-result"></div>
   </section>
 
   <!-- VERSUS · Older or Younger -->
@@ -369,6 +406,68 @@ function notEnoughCats(){
   toast('bad', 'Not enough cards', 'Open Categories on the home screen and pick a few more.'); // …then surface the message
 }
 
+// ---------- sound, haptics & celebration ----------
+const REDUCE = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){ return false; } })();
+let dailyTimer = null;
+const FX = (() => {
+  let ctx = null;
+  const enabled = () => store.get('fx', true);
+  function ac(){ if (!ctx){ try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){ ctx = null; } } return ctx; }
+  function tone(freq, dur, type, when, gain){
+    const c = ac(); if (!c) return;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = type || 'sine'; o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, when);
+    g.gain.exponentialRampToValueAtTime(gain || 0.2, when + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+    o.connect(g).connect(c.destination); o.start(when); o.stop(when + dur + 0.03);
+  }
+  function play(name){
+    if (!enabled()) return;
+    const c = ac(); if (!c) return;
+    if (c.state === 'suspended'){ try { c.resume(); } catch(e){} }
+    const t = c.currentTime;
+    if (name === 'good'){ tone(659,.10,'triangle',t,.22); tone(988,.14,'triangle',t+.09,.20); }
+    else if (name === 'bad'){ tone(196,.20,'sawtooth',t,.16); tone(147,.22,'sawtooth',t+.06,.14); }
+    else if (name === 'win'){ [523,659,784,1047,1319].forEach((f,i)=>tone(f,.16,'triangle',t+i*.085,.20)); }
+    else if (name === 'tick'){ tone(523,.03,'square',t,.06); }
+  }
+  function buzz(pat){ if (enabled() && navigator.vibrate){ try { navigator.vibrate(pat); } catch(e){} } }
+  return { play, buzz, enabled, toggle(){ store.set('fx', !enabled()); return enabled(); } };
+})();
+function toggleFx(){ const on = FX.toggle(); if (on) FX.play('tick'); const b = $('fx-toggle'); if (b) b.textContent = on ? 'Sound on' : 'Sound off'; }
+function isMilestone(n){ return n > 0 && n % 5 === 0; }
+function countUp(el, to, ms){
+  if (!el) return;
+  if (REDUCE){ el.textContent = to; return; }
+  const from = Math.max(0, to - 45), dur = ms || 600, t0 = performance.now();
+  (function step(now){ const p = Math.min(1, (now - t0) / dur), e = p*p*(3-2*p);
+    el.textContent = Math.round(from + (to - from) * e);
+    if (p < 1) requestAnimationFrame(step); else el.textContent = to; })(t0);
+}
+function celebrate(){
+  if (REDUCE) return;
+  const cv = document.createElement('canvas');
+  cv.style.cssText = 'position:fixed;inset:0;z-index:90;pointer-events:none;';
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const W = cv.width = innerWidth * dpr, H = cv.height = innerHeight * dpr;
+  document.body.appendChild(cv);
+  const g = cv.getContext('2d');
+  const colors = ['#ff3d8b','#a55cff','#37dbe6','#ffcf3f','#4fe0a0'], parts = [];
+  for (let i = 0; i < 130; i++){
+    parts.push({ x: W/2, y: H*0.34, vx:(Math.random()-.5)*17*dpr, vy:(Math.random()*-15-4)*dpr,
+      s:(4+Math.random()*5)*dpr, c:colors[i%colors.length], r:Math.random()*6, vr:(Math.random()-.5)*.4 });
+  }
+  const grav = 0.45 * dpr; let frames = 0;
+  (function frame(){
+    frames++; g.clearRect(0,0,W,H);
+    for (const p of parts){ p.vy += grav; p.x += p.vx; p.y += p.vy; p.vx *= .99; p.r += p.vr;
+      g.save(); g.translate(p.x, p.y); g.rotate(p.r); g.globalAlpha = Math.max(0, 1 - frames/95);
+      g.fillStyle = p.c; g.fillRect(-p.s/2, -p.s/2, p.s, p.s*.6); g.restore(); }
+    if (frames < 95) requestAnimationFrame(frame); else cv.remove();
+  })();
+}
+
 // Build a deck of card indices: unseen first, sleepers spaced roughly every 8-10 draws.
 function buildDeck(){
   const seen = new Set(store.get('seen', []));
@@ -395,7 +494,8 @@ function markSeen(i){ const s = store.get('seen', []); if (!s.includes(CARDS[i].
 
 // ---------- ui helpers ----------
 function $(id){ return document.getElementById(id); }
-function show(id){ dismissToast(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active');
+function show(id){ dismissToast(); if (dailyTimer){ clearInterval(dailyTimer); dailyTimer = null; }
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active');
   if (id==='home') renderHome(); window.scrollTo(0,0); }
 function catName(k){ return CATEGORIES[k] || k; }
 let toastTimer = null;
@@ -549,11 +649,14 @@ function placeSolo(slotIdx){
     S.streak++; S.placed++; S.sinceBonus++;
     const best = store.get('best', 0);
     if (S.streak > best) store.set('best', S.streak);
+    FX.play('good'); FX.buzz(15);
+    if (isMilestone(S.streak)){ FX.play('win'); celebrate(); }
     const after = () => { drawSolo(); };
     if (c.s){ sleeperReveal(c, after); renderSoloStatic(slotIdx); }
     else { lastRevealed = c.t; toast('good', c.y + '. Correct.', c.f, 3400, true); after(); highlightAfterDraw(slotIdx); }
   } else {
     S.lives--; S.streak = 0;
+    FX.play('bad'); FX.buzz([40,30,40]);
     // missed card is revealed and discarded; you never retry a card you've seen the year for
     if (c.s){ sleeperReveal(c, () => { if (S.lives <= 0) endSolo(); else drawSolo(); }); }
     else {
@@ -638,6 +741,7 @@ function placeParty(slotIdx){
     pl.timeline.splice(slotIdx, 0, P.cur);
     const stolen = P.stealing != null;
     const won = pl.timeline.length >= 10;
+    if (won){ FX.play('win'); celebrate(); } else { FX.play('good'); FX.buzz(15); }
     const finish = () => {
       if (won){ endParty(pl); return; }
       nextTurn();
@@ -653,6 +757,7 @@ function placeParty(slotIdx){
     while (P.stealTried.includes(next) && P.stealTried.length < P.players.length){
       next = (next + 1) % P.players.length;
     }
+    FX.play('bad'); FX.buzz([40,30,40]);
     if (P.stealTried.length >= P.players.length){
       const dead = () => { nextTurn(); drawParty(); };
       if (c.s){ sleeperReveal(c, dead); }
@@ -696,6 +801,13 @@ function copyResult(){
 function renderHome(){
   $('best-streak').textContent = store.get('best', 0);
   renderCatPicker();
+  const drec = store.get('daily:' + todayKey(), null), dstreak = store.get('dailyStreak', 0);
+  const db = $('daily-btn');
+  if (db) db.innerHTML =
+    '<span class="db-l"><span class="db-badge">DAILY</span>#' + dailyNumber() + '</span>' +
+    '<span class="db-r">' + (drec ? ('&#10003; ' + drec.score + '/5 today') : 'Play today’s five') +
+      (dstreak > 1 ? (' &middot; &#128293;' + dstreak) : '') + '</span>';
+  const fb = $('fx-toggle'); if (fb) fb.textContent = FX.enabled() ? 'Sound on' : 'Sound off';
 }
 function toggleCatPanel(){
   const p = $('cat-picker'); const open = p.classList.toggle('open');
@@ -804,12 +916,15 @@ function chooseVersus(key){
   elB.classList.add('reveal', aOlder ? 'newer' : 'older');
   elA.querySelector('.tag-ow').textContent = aOlder ? 'Older' : 'Newer';
   elB.querySelector('.tag-ow').textContent = aOlder ? 'Newer' : 'Older';
+  countUp(elA.querySelector('.vyear'), ca.y); countUp(elB.querySelector('.vyear'), cb.y);
+  FX.play(correct ? 'good' : 'bad'); FX.buzz(correct ? 18 : [40,30,40]);
   const older = aOlder ? ca : cb, gap = Math.abs(ca.y - cb.y);
   const gapTxt = gap + ' year' + (gap === 1 ? '' : 's');
   if (correct){
     V.streak++;
     const best = store.get('bestVersus', 0);
     if (V.streak > best) store.set('bestVersus', V.streak);
+    if (isMilestone(V.streak)) celebrate();
     $('v-streak').textContent = V.streak;
     $('v-best').textContent = store.get('bestVersus', 0);
     $('v-result').innerHTML =
@@ -825,6 +940,121 @@ function chooseVersus(key){
       '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
   }
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+
+// ---------- daily challenge (same five for everyone, one try a day) ----------
+let D = null, D_share = '';
+function pad2(n){ return String(n).padStart(2,'0'); }
+function todayKey(){ const d = new Date(); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+function yesterdayKey(){ const d = new Date(); d.setDate(d.getDate()-1); return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate()); }
+const DAILY_EPOCH = Date.UTC(2026, 6, 1); // #1 = Jul 1 2026
+function dailyNumber(){ const d = new Date(); const t = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()); return Math.max(1, Math.floor((t - DAILY_EPOCH)/86400000) + 1); }
+function hashStr(s){ let h = 2166136261 >>> 0; for (let i=0;i<s.length;i++){ h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function dailyMatchups(){
+  const rng = mulberry32(hashStr('bmt-' + todayKey()));
+  const idx = CARDS.map((c,i)=>i);
+  for (let i = idx.length-1; i > 0; i--){ const j = Math.floor(rng()*(i+1)); [idx[i],idx[j]] = [idx[j],idx[i]]; }
+  const pairs = []; let p = 0;
+  while (pairs.length < 5 && p < idx.length-1){
+    let a = idx[p], b = idx[p+1]; p += 2;
+    if (CARDS[a].y === CARDS[b].y){ let q = p; while (q < idx.length && CARDS[idx[q]].y === CARDS[a].y) q++; if (q < idx.length){ b = idx[q]; } }
+    pairs.push([a, b]);
+  }
+  return pairs;
+}
+function dailyDots(results, cur){
+  let s = '<span class="d-dots">';
+  for (let i = 0; i < 5; i++){ const r = results[i]; const cls = i === cur ? 'dot cur' : (r === undefined ? 'dot' : (r ? 'dot ok' : 'dot no')); s += '<span class="'+cls+'"></span>'; }
+  return s + '</span>';
+}
+function startDaily(){
+  const rec = store.get('daily:' + todayKey(), null);
+  D = { pairs: dailyMatchups(), i: 0, results: [], num: dailyNumber(), done: false };
+  if (rec){ showDailyResult(rec); return; }
+  show('daily'); renderDaily();
+}
+function renderDaily(){
+  D.done = false;
+  $('d-num').textContent = '#' + D.num;
+  $('d-progress').innerHTML = dailyDots(D.results, D.i);
+  const [ia, ib] = D.pairs[D.i];
+  $('d-cards').innerHTML = vCardHtml('da', CARDS[ia]) + '<div class="vs-badge"><span>VS</span></div>' + vCardHtml('db', CARDS[ib]);
+  $('d-result').innerHTML = '';
+  $('vc-da').onclick = () => chooseDaily('da');
+  $('vc-db').onclick = () => chooseDaily('db');
+  window.scrollTo(0, 0);
+}
+function chooseDaily(key){
+  if (!D || D.done) return;
+  D.done = true;
+  const [ia, ib] = D.pairs[D.i], ca = CARDS[ia], cb = CARDS[ib];
+  const aOlder = ca.y < cb.y, correct = key === (aOlder ? 'da' : 'db');
+  D.results.push(correct);
+  const elA = $('vc-da'), elB = $('vc-db');
+  elA.onclick = null; elB.onclick = null;
+  elA.classList.add('reveal', aOlder ? 'older' : 'newer');
+  elB.classList.add('reveal', aOlder ? 'newer' : 'older');
+  elA.querySelector('.tag-ow').textContent = aOlder ? 'Older' : 'Newer';
+  elB.querySelector('.tag-ow').textContent = aOlder ? 'Newer' : 'Older';
+  countUp(elA.querySelector('.vyear'), ca.y); countUp(elB.querySelector('.vyear'), cb.y);
+  FX.play(correct ? 'good' : 'bad'); FX.buzz(correct ? 18 : [40,30,40]);
+  const older = aOlder ? ca : cb;
+  $('d-progress').innerHTML = dailyDots(D.results, -1);
+  const last = D.i >= 4;
+  $('d-result').innerHTML =
+    '<div class="vs-banner ' + (correct ? 'good' : 'bad') + '">' + (correct ? 'Correct' : 'Nope') + ' &mdash; ' + older.t + ' (' + older.y + ') is older.</div>' +
+    '<button class="btn primary" onclick="nextDaily()">' + (last ? 'See result' : 'Next matchup') + '</button>';
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+function nextDaily(){ D.i++; if (D.i >= 5) finishDaily(); else renderDaily(); }
+function finishDaily(){
+  const score = D.results.filter(Boolean).length;
+  const rec = { date: todayKey(), num: D.num, results: D.results.slice(), score };
+  store.set('daily:' + todayKey(), rec);
+  if (store.get('dailyLast', null) !== todayKey()){
+    const s0 = store.get('dailyStreak', 0);
+    store.set('dailyStreak', store.get('dailyLast', null) === yesterdayKey() ? s0 + 1 : 1);
+    store.set('dailyLast', todayKey());
+  }
+  if (score === 5){ FX.play('win'); celebrate(); } else if (score >= 3){ FX.play('good'); }
+  showDailyResult(rec);
+}
+function showDailyResult(rec){
+  show('daily');
+  $('d-num').textContent = '#' + rec.num;
+  $('d-progress').innerHTML = dailyDots(rec.results, -1);
+  $('d-cards').innerHTML = '';
+  const emoji = rec.results.map(r => r ? '🟩' : '⬛').join('');
+  const streak = store.get('dailyStreak', 0);
+  D_share = 'Before My Time — Daily #' + rec.num + '  ' + rec.score + '/5\n' + emoji +
+    (streak > 1 ? ('\n🔥 ' + streak + '-day streak') : '') + '\n' + location.origin + location.pathname;
+  $('d-result').innerHTML =
+    '<div class="daily-done">' +
+      '<div class="dd-score">' + rec.score + '<span>/5</span></div>' +
+      '<div class="dd-emoji">' + emoji + '</div>' +
+      (streak > 1 ? '<div class="dd-streak">🔥 ' + streak + '-day streak</div>' : '') +
+      '<div class="dd-next">Next daily in <b id="d-countdown">…</b></div>' +
+    '</div>' +
+    '<button class="btn secondary" onclick="shareDaily()">' + (navigator.share ? 'Share result' : 'Copy result') + '</button>' +
+    '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
+  startCountdown();
+}
+function shareDaily(){
+  if (navigator.share){ navigator.share({ text: D_share }).catch(()=>{}); return; }
+  if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(D_share).then(()=>toast('good','Copied.','Paste it somewhere braggy.')); }
+  else toast('good', D_share);
+}
+function startCountdown(){
+  if (dailyTimer) clearInterval(dailyTimer);
+  const tick = () => {
+    const el = $('d-countdown'); if (!el){ clearInterval(dailyTimer); dailyTimer = null; return; }
+    const now = new Date(), mid = new Date(now); mid.setHours(24,0,0,0);
+    let s = Math.max(0, Math.floor((mid - now)/1000));
+    const h = Math.floor(s/3600); s %= 3600; const m = Math.floor(s/60); s %= 60;
+    el.textContent = pad2(h)+':'+pad2(m)+':'+pad2(s);
+  };
+  tick(); dailyTimer = setInterval(tick, 1000);
 }
 
 // init
