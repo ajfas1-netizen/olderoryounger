@@ -252,6 +252,25 @@
   .bg-ic{font-size:26px;}
   .bg-nm{font-weight:800; font-size:14px; margin-top:5px;}
   .bg-ds{font-size:11.5px; color:var(--dim); margin-top:4px; line-height:1.32;}
+  /* ---------- solo final reveal + daily recap ---------- */
+  .final-reveal{margin-top:6px;}
+  .fr-lead{font-size:12px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--red); margin-bottom:8px;}
+  .fr-fact{color:var(--dim); font-size:13.5px; line-height:1.4; margin:8px 2px 0; text-align:left;}
+  .rc-title{font-size:13px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--cyan); text-align:center; margin:4px 0 12px;}
+  .recap{display:flex; flex-direction:column; gap:10px;}
+  .rc-row{background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:14px; padding:12px 13px;}
+  .rc-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px;}
+  .rc-q{font-size:12px; font-weight:800; letter-spacing:1px; color:var(--dim);}
+  .rc-mark{font-size:12px; font-weight:800;}
+  .rc-mark.ok{color:var(--green);} .rc-mark.no{color:var(--red);}
+  .rc-item{display:flex; align-items:center; gap:10px; padding:6px 0;}
+  .rc-item .rc-yr{font-weight:900; font-size:16px; color:var(--dim); min-width:48px;}
+  .rc-item .rc-nm{font-weight:700; font-size:14px;}
+  .rc-item.older .rc-yr{color:var(--green);}
+  .rc-item.older .rc-nm{color:var(--ink);}
+  .rc-tag{font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--green);
+    border:1px solid rgba(79,224,160,.4); border-radius:99px; padding:2px 8px; margin-left:auto;}
+  .rc-fact{color:var(--dim); font-size:12.5px; line-height:1.4; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);}
   /* versus / older-or-younger mode */
   .vs-q{text-align:center; font-size:15px; color:var(--dim); font-weight:700; margin:2px 0 14px;}
   .vs-q b{color:var(--ink);}
@@ -782,11 +801,11 @@ function placeSolo(slotIdx){
     recordAnswer(false, c.c, c.s);
     FX.play('bad'); FX.buzz([40,30,40]);
     // missed card is revealed and discarded; you never retry a card you've seen the year for
-    if (c.s){ sleeperReveal(c, () => { if (S.lives <= 0) endSolo(); else drawSolo(); }); }
-    else {
-      lastRevealed = c.t; toast('bad', 'Nope. '+c.t+' was '+c.y+'.', c.f, 4200, true);
-      if (S.lives <= 0){ endSolo(); } else { drawSolo(); }
-    }
+    const dead = S.lives <= 0;
+    const reveal = { t:c.t, y:c.y, f:c.f };
+    if (c.s){ sleeperReveal(c, () => { if (dead) endSolo(null, reveal); else drawSolo(); }); }
+    else if (dead){ endSolo(null, reveal); } // show the final answer on the score screen instead of a toast that gets dismissed
+    else { lastRevealed = c.t; toast('bad', 'Nope. '+c.t+' was '+c.y+'.', c.f, 4200, true); drawSolo(); }
   }
 }
 function renderSoloStatic(slotIdx){
@@ -794,12 +813,16 @@ function renderSoloStatic(slotIdx){
   highlightNew($('s-timeline'), slotIdx);
 }
 function highlightAfterDraw(slotIdx){ highlightNew($('s-timeline'), slotIdx); }
-function endSolo(msg){
+function endSolo(msg, reveal){
   lastResult = { mode:'solo', placed:S.placed };
   $('over-title').textContent = msg || 'Out of lives';
   $('over-num').textContent = S.placed;
   $('over-sub').textContent = 'cards placed · best streak ' + store.get('best', 0);
-  $('over-scores').innerHTML = '';
+  $('over-scores').innerHTML = reveal
+    ? '<div class="final-reveal"><div class="fr-lead">The one that got you</div>' +
+      '<div class="score-row"><span>' + reveal.t + '</span><span class="n">' + reveal.y + '</span></div>' +
+      (reveal.f ? '<p class="fr-fact">' + reveal.f + '</p>' : '') + '</div>'
+    : '';
   $('over-again').textContent = 'Play again';
   $('over-again').onclick = startSolo;
   show('over');
@@ -1168,9 +1191,36 @@ function showDailyResult(rec){
       '<div class="dd-next">Next daily in <b id="d-countdown">…</b></div>' +
     '</div>' +
     '<button class="btn secondary" onclick="shareDaily()">' + (navigator.share ? 'Share result' : 'Copy result') + '</button>' +
+    '<button class="btn ghost" onclick="reviewDaily()">Review answers</button>' +
     '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
   startCountdown();
 }
+function reviewDaily(){
+  const rec = store.get('daily:' + todayKey(), null); if (!rec) return;
+  if (dailyTimer){ clearInterval(dailyTimer); dailyTimer = null; }
+  const pairs = dailyMatchups(); // deterministic for today, so it lines up with the saved results
+  let rows = '';
+  pairs.forEach((p, i) => {
+    const ca = CARDS[p[0]], cb = CARDS[p[1]], aOlder = ca.y < cb.y;
+    const older = aOlder ? ca : cb, newer = aOlder ? cb : ca;
+    const correct = rec.results[i];
+    rows +=
+      '<div class="rc-row">' +
+        '<div class="rc-head"><span class="rc-q">Q' + (i+1) + '</span>' +
+          '<span class="rc-mark ' + (correct ? 'ok' : 'no') + '">' + (correct ? '✓ you got it' : '✗ missed') + '</span></div>' +
+        '<div class="rc-item older"><span class="rc-yr">' + older.y + '</span><span class="rc-nm">' + older.t + '</span><span class="rc-tag">older</span></div>' +
+        '<div class="rc-item"><span class="rc-yr">' + newer.y + '</span><span class="rc-nm">' + newer.t + '</span></div>' +
+        '<div class="rc-fact">' + older.f + '</div>' +
+      '</div>';
+  });
+  $('d-result').innerHTML =
+    '<div class="rc-title">Daily #' + rec.num + ' recap &middot; ' + rec.score + '/5</div>' +
+    '<div class="recap">' + rows + '</div>' +
+    '<button class="btn secondary" onclick="showTodayResult()">Back to result</button>' +
+    '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
+  window.scrollTo(0, 0);
+}
+function showTodayResult(){ const rec = store.get('daily:' + todayKey(), null); if (rec) showDailyResult(rec); }
 function shareDaily(){
   if (navigator.share){ navigator.share({ text: D_share }).catch(()=>{}); return; }
   if (navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(D_share).then(()=>toast('good','Copied.','Paste it somewhere braggy.')); }
