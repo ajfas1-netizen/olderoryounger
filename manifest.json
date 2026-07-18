@@ -1,0 +1,12 @@
+{
+  "name": "Before My Time (or maybe not)",
+  "short_name": "Before My Time",
+  "description": "The pop culture timeline game. Some of it is way older than you think.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#12101f",
+  "theme_color": "#12101f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

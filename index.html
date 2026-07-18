@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#12101f">
+<title>Before My Time (or maybe not)</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#12101f; --panel:#1d1a30; --panel2:#252140; --ink:#f2eefb; --dim:#9b93b8;
+    --pink:#ff4f9a; --cyan:#3fd8e0; --yellow:#ffd24f; --green:#5ee29a; --red:#ff6363;
+    --radius:14px;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0; padding:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  body{min-height:100vh; padding-bottom:env(safe-area-inset-bottom);}
+  .wrap{max-width:520px; margin:0 auto; padding:16px;}
+  h1{font-size:34px; line-height:1.05; margin:0; letter-spacing:-1px; font-weight:800;}
+  .tag{color:var(--pink); font-weight:700;}
+  .sub{color:var(--dim); margin:10px 0 0; font-size:15px;}
+  .btn{display:block; width:100%; border:0; border-radius:var(--radius); padding:16px;
+    font-size:17px; font-weight:700; cursor:pointer; margin-top:12px; color:#161225;}
+  .btn.primary{background:linear-gradient(135deg,var(--pink),#ff8f4f);}
+  .btn.secondary{background:linear-gradient(135deg,var(--cyan),#7fe0a8); }
+  .btn.ghost{background:var(--panel2); color:var(--ink);}
+  .btn.small{width:auto; display:inline-block; padding:10px 14px; font-size:14px; margin:6px 6px 0 0;}
+  .btn:disabled{opacity:.4;}
+  .screen{display:none;}
+  .screen.active{display:block; animation:fade .25s ease;}
+  @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
+  .hud{display:flex; gap:8px; align-items:center; justify-content:space-between; margin:4px 0 12px; flex-wrap:wrap;}
+  .pill{background:var(--panel); border-radius:99px; padding:7px 13px; font-size:13px; font-weight:700; color:var(--dim);}
+  .pill b{color:var(--ink);}
+  .pill.lives b{color:var(--red);} .pill.streak b{color:var(--yellow);} .pill.tokens b{color:var(--cyan);}
+  .draw{background:var(--panel); border-radius:var(--radius); padding:18px; text-align:center;
+    border:2px solid var(--panel2); position:sticky; top:8px; z-index:5; box-shadow:0 8px 24px rgba(0,0,0,.45);}
+  .cat{display:inline-block; font-size:12px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
+    color:var(--cyan); margin-bottom:6px;}
+  .card-title{font-size:24px; font-weight:800; line-height:1.15; margin:0;}
+  .hint{color:var(--dim); font-size:13px; margin-top:8px;}
+  .timeline{margin-top:14px;}
+  .tl-card{background:var(--panel2); border-radius:12px; padding:12px 14px; display:flex; align-items:center; gap:12px;}
+  .tl-card .yr{font-weight:800; font-size:18px; color:var(--yellow); min-width:52px;}
+  .tl-card .nm{font-size:15px; font-weight:600;}
+  .tl-card .c{display:block; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:1px; margin-top:2px;}
+  .tl-card.new{outline:2px solid var(--green); animation:pop .5s ease;}
+  .tl-card.reveal{outline:2px solid var(--red);}
+  @keyframes pop{0%{transform:scale(.95);} 60%{transform:scale(1.02);} 100%{transform:none;}}
+  .slot{display:block; width:100%; border:2px dashed #453e6b; background:transparent; color:var(--dim);
+    border-radius:10px; padding:9px; margin:8px 0; font-size:13px; font-weight:700; cursor:pointer;}
+  .slot:active{border-color:var(--pink); color:var(--pink);}
+  .toast{position:fixed; left:50%; transform:translateX(-50%); bottom:24px; width:min(480px,92vw);
+    background:var(--panel); border:2px solid var(--panel2); border-radius:var(--radius); padding:14px 16px;
+    z-index:50; box-shadow:0 12px 30px rgba(0,0,0,.6); animation:fade .25s ease;}
+  .toast .t-head{font-weight:800; font-size:15px;}
+  .toast .t-fact{color:var(--dim); font-size:14px; margin-top:4px; line-height:1.35;}
+  .toast.good .t-head{color:var(--green);} .toast.bad .t-head{color:var(--red);}
+  .overlay{position:fixed; inset:0; background:rgba(10,8,20,.93); z-index:100; display:flex;
+    align-items:center; justify-content:center; padding:20px; animation:fade .3s ease;}
+  .ov-box{max-width:440px; width:100%; text-align:center; background:var(--panel); border-radius:18px;
+    padding:28px 22px; border:2px solid var(--pink);}
+  .ov-box.sleeper{border-color:var(--yellow);}
+  .ov-kicker{font-size:13px; letter-spacing:3px; font-weight:800; text-transform:uppercase; color:var(--pink);}
+  .sleeper .ov-kicker{color:var(--yellow);}
+  .ov-year{font-size:64px; font-weight:900; margin:6px 0; letter-spacing:-2px;}
+  .ov-title{font-size:20px; font-weight:800;}
+  .ov-fact{color:var(--dim); font-size:15px; margin-top:10px; line-height:1.4;}
+  .flag{background:none; border:0; color:#5b5480; font-size:12px; margin-top:14px; cursor:pointer; text-decoration:underline;}
+  input[type=text],input[type=number]{width:100%; background:var(--panel2); color:var(--ink); border:2px solid #453e6b;
+    border-radius:10px; padding:13px; font-size:16px; margin-top:8px;}
+  .year-guess{display:flex; gap:8px; align-items:center; margin-top:12px;}
+  .year-guess button{width:52px; height:52px; font-size:24px; font-weight:800; border:0; border-radius:12px;
+    background:var(--panel2); color:var(--ink); cursor:pointer;}
+  .year-guess input{text-align:center; font-size:24px; font-weight:800; margin:0;}
+  .player-tag{font-size:13px; font-weight:800; letter-spacing:2px; text-transform:uppercase; color:var(--pink); margin-bottom:6px;}
+  .steal-banner{background:linear-gradient(135deg,var(--pink),#a44fff); color:#fff; border-radius:12px;
+    padding:12px 14px; font-weight:800; font-size:14px; margin-bottom:10px; text-align:center;}
+  .score-row{display:flex; justify-content:space-between; background:var(--panel); border-radius:10px;
+    padding:12px 14px; margin-top:8px; font-weight:700;}
+  .score-row .n{color:var(--yellow);}
+  .footer-note{color:#5b5480; font-size:12px; text-align:center; margin-top:28px; line-height:1.5;}
+  .big-num{font-size:56px; font-weight:900; text-align:center; margin:8px 0; color:var(--yellow);}
+  .center{text-align:center;}
+  .mt{margin-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- HOME -->
+  <section id="home" class="screen active">
+    <h1>Before My Time<br><span class="tag">(or maybe not)</span></h1>
+    <p class="sub">The pop culture timeline game. Snacks, toys, songs, movies. Some of it is way older than you think.</p>
+    <button class="btn primary" onclick="startSolo()">Solo &middot; Streak Mode</button>
+    <button class="btn secondary" onclick="show('party-setup')">Party &middot; Pass the Phone</button>
+    <div class="mt">
+      <span class="pill">Deck <b id="deck-count"></b> cards</span>
+      <span class="pill">Best streak <b id="best-streak">0</b></span>
+    </div>
+    <p class="footer-note">Gen X pack v1 &middot; Every year verified, no guesses shipped.<br>
+      <button class="flag" onclick="showFlags()">View flagged cards</button></p>
+  </section>
+
+  <!-- SOLO -->
+  <section id="solo" class="screen">
+    <div class="hud">
+      <span class="pill lives">Lives <b id="s-lives"></b></span>
+      <span class="pill streak">Streak <b id="s-streak"></b></span>
+      <span class="pill tokens">Skips <b id="s-tokens"></b></span>
+      <span class="pill">Placed <b id="s-placed"></b></span>
+    </div>
+    <div class="draw" id="s-draw"></div>
+    <div class="timeline" id="s-timeline"></div>
+  </section>
+
+  <!-- PARTY SETUP -->
+  <section id="party-setup" class="screen">
+    <h1 style="font-size:26px">Pass the Phone</h1>
+    <p class="sub">2 to 6 players or teams. Place cards into your own timeline. Miss, and the next player can steal. First to 10 wins.</p>
+    <div id="player-inputs"></div>
+    <button class="btn ghost small" onclick="addPlayerInput()">+ Add player</button>
+    <button class="btn primary" onclick="startParty()">Start</button>
+    <button class="btn ghost" onclick="show('home')">Back</button>
+  </section>
+
+  <!-- PARTY -->
+  <section id="party" class="screen">
+    <div id="p-steal"></div>
+    <div class="player-tag" id="p-name"></div>
+    <div class="hud">
+      <span class="pill">Cards <b id="p-cards"></b>/10</span>
+      <span class="pill tokens">Skips <b id="p-tokens"></b></span>
+    </div>
+    <div class="draw" id="p-draw"></div>
+    <div class="timeline" id="p-timeline"></div>
+  </section>
+
+  <!-- GAME OVER -->
+  <section id="over" class="screen center">
+    <h1 style="font-size:28px" id="over-title"></h1>
+    <div class="big-num" id="over-num"></div>
+    <p class="sub" id="over-sub"></p>
+    <div id="over-scores"></div>
+    <button class="btn primary" onclick="copyResult()">Copy result</button>
+    <button class="btn secondary" id="over-again"></button>
+    <button class="btn ghost" onclick="show('home')">Home</button>
+  </section>
+
+</div>
+
+<script src="data/cards.js"></script>
+<script>
+// ---------- storage (safe wrapper: falls back to memory) ----------
+const store = (() => {
+  let mem = {};
+  const ok = (() => { try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); return true; } catch(e){ return false; } })();
+  return {
+    get(k, d){ try { const v = ok ? localStorage.getItem(k) : mem[k]; return v == null ? d : JSON.parse(v); } catch(e){ return d; } },
+    set(k, v){ try { if (ok) localStorage.setItem(k, JSON.stringify(v)); else mem[k] = JSON.stringify(v); } catch(e){} }
+  };
+})();
+
+// ---------- deck ----------
+const MIN_Y = Math.min(...CARDS.map(c=>c.y)), MAX_Y = Math.max(...CARDS.map(c=>c.y));
+function shuffle(a){ for (let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+// Build a deck of card indices: unseen first, sleepers spaced roughly every 8-10 draws.
+function buildDeck(){
+  const seen = new Set(store.get('seen', []));
+  let pool = CARDS.map((c,i)=>i);
+  let unseen = pool.filter(i=>!seen.has(CARDS[i].t));
+  if (unseen.length < 30) { store.set('seen', []); unseen = pool; } // deck refresh
+  const sleepers = shuffle(unseen.filter(i=>CARDS[i].s));
+  const normals  = shuffle(unseen.filter(i=>!CARDS[i].s));
+  const deck = [];
+  let gap = 4 + Math.floor(Math.random()*5); // first sleeper arrives a bit sooner
+  while (normals.length || sleepers.length){
+    if (gap <= 0 && sleepers.length){ deck.push(sleepers.pop()); gap = 8 + Math.floor(Math.random()*3); }
+    else if (normals.length){ deck.push(normals.pop()); gap--; }
+    else { deck.push(sleepers.pop()); }
+  }
+  return deck;
+}
+function markSeen(i){ const s = store.get('seen', []); if (!s.includes(CARDS[i].t)){ s.push(CARDS[i].t); store.set('seen', s); } }
+
+// ---------- ui helpers ----------
+function $(id){ return document.getElementById(id); }
+function show(id){ dismissToast(); document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active');
+  if (id==='home') renderHome(); window.scrollTo(0,0); }
+function catName(k){ return CATEGORIES[k] || k; }
+let toastTimer = null;
+function toast(kind, head, fact, ms, flaggable){
+  dismissToast();
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind; el.id = 'toast';
+  el.innerHTML = '<div class="t-head">'+head+'</div>' + (fact ? '<div class="t-fact">'+fact+'</div>' : '') +
+    (flaggable ? '<button class="flag" onclick="flagCard(lastRevealed)">Year look wrong? Flag it</button>' : '');
+  document.body.appendChild(el);
+  toastTimer = setTimeout(dismissToast, ms || 3400);
+}
+function dismissToast(){ const t = $('toast'); if (t) t.remove(); if (toastTimer) clearTimeout(toastTimer); }
+
+function overlay(html, cls, onclose){
+  const ov = document.createElement('div'); ov.className='overlay';
+  ov.innerHTML = '<div class="ov-box '+(cls||'')+'">'+html+'</div>';
+  ov.addEventListener('click', ()=>{ ov.remove(); if (onclose) onclose(); });
+  document.body.appendChild(ov);
+}
+let lastRevealed = null;
+function sleeperReveal(card, onclose){
+  lastRevealed = card.t;
+  overlay(
+    '<div class="ov-kicker">Sleeper!</div>'+
+    '<div class="ov-year">'+card.y+'</div>'+
+    '<div class="ov-title">'+card.t+'</div>'+
+    '<div class="ov-fact">'+card.f+'</div>'+
+    '<div class="ov-fact" style="margin-top:14px;color:var(--yellow)">Way older than you thought. Tap to continue.</div>',
+    'sleeper', onclose);
+}
+
+function flagCard(title){
+  const fl = store.get('flags', []);
+  if (!fl.includes(title)){ fl.push(title); store.set('flags', fl); }
+  toast('good', 'Flagged', 'Thanks. "'+title+'" is marked for review.', 2000);
+}
+function showFlags(){
+  const fl = store.get('flags', []);
+  overlay('<div class="ov-kicker">Flagged cards</div><div class="ov-fact" style="margin-top:10px">'+
+    (fl.length ? fl.join('<br>') : 'None yet. When a year is revealed, tap "Flag it" if it looks wrong.')+'</div>');
+}
+
+function renderTimeline(el, timeline, interactive, onPlace){
+  el.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  const slot = (idx) => {
+    const b = document.createElement('button');
+    b.className = 'slot'; b.textContent = 'place here';
+    b.onclick = () => onPlace(idx);
+    return b;
+  };
+  if (interactive) frag.appendChild(slot(0));
+  timeline.forEach((ci, i) => {
+    const c = CARDS[ci];
+    const d = document.createElement('div');
+    d.className = 'tl-card'; d.dataset.idx = i;
+    d.innerHTML = '<span class="yr">'+c.y+'</span><span class="nm">'+c.t+'<span class="c">'+catName(c.c)+'</span></span>';
+    frag.appendChild(d);
+    if (interactive) frag.appendChild(slot(i+1));
+  });
+  el.appendChild(frag);
+}
+function highlightNew(el, timelineIndex){
+  const cardEls = el.querySelectorAll('.tl-card');
+  if (cardEls[timelineIndex]) cardEls[timelineIndex].classList.add('new');
+}
+// correct if card year fits between neighbors (inclusive on ties)
+function fits(timeline, slotIdx, year){
+  const left  = slotIdx > 0 ? CARDS[timeline[slotIdx-1]].y : -Infinity;
+  const right = slotIdx < timeline.length ? CARDS[timeline[slotIdx]].y : Infinity;
+  return year >= left && year <= right;
+}
+function insertionIndex(timeline, year){
+  let i = 0; while (i < timeline.length && CARDS[timeline[i]].y <= year) i++; return i;
+}
+
+// ---------- solo ----------
+let S = null;
+function startSolo(){
+  S = { deck: buildDeck(), timeline: [], lives: 3, streak: 0, placed: 0, tokens: 1, sinceBonus: 0, cur: null, bonus: false };
+  S.timeline.push(S.deck.shift()); // anchor (sleeper spacing guarantees a normal card first)
+  drawSolo();
+  show('solo');
+}
+function drawSolo(){
+  if (!S.deck.length){ endSolo('Deck cleared. Seriously?'); return; }
+  S.cur = S.deck.shift();
+  S.bonus = (S.sinceBonus >= 5);
+  renderSolo();
+}
+function renderSolo(){
+  $('s-lives').textContent = '♥'.repeat(S.lives) || '0';
+  $('s-streak').textContent = S.streak;
+  $('s-tokens').textContent = S.tokens;
+  $('s-placed').textContent = S.placed;
+  const c = CARDS[S.cur];
+  if (S.bonus){
+    $('s-draw').innerHTML =
+      '<div class="cat" style="color:var(--yellow)">Bonus &middot; Call the Year</div>'+
+      '<h2 class="card-title">'+c.t+'</h2>'+
+      '<div class="hint">Within 2 years earns a Skip token.</div>'+
+      '<div class="year-guess">'+
+        '<button onclick="bumpYear(-1)">&minus;</button>'+
+        '<input type="number" id="year-input" value="'+(Math.round((MIN_Y+MAX_Y)/2))+'" min="'+MIN_Y+'" max="'+MAX_Y+'">'+
+        '<button onclick="bumpYear(1)">+</button>'+
+      '</div>'+
+      '<button class="btn primary" style="margin-top:12px" onclick="callYear()">Lock it in</button>';
+    renderTimeline($('s-timeline'), S.timeline, false);
+  } else {
+    $('s-draw').innerHTML =
+      '<div class="cat">'+catName(c.c)+'</div>'+
+      '<h2 class="card-title">'+c.t+'</h2>'+
+      '<div class="hint">Tap where it lands in your timeline.</div>'+
+      (S.tokens > 0 ? '<button class="btn ghost small" onclick="useSkip()">Use a Skip</button>' : '');
+    renderTimeline($('s-timeline'), S.timeline, true, placeSolo);
+  }
+}
+function bumpYear(d){ const el = $('year-input'); el.value = Math.max(MIN_Y, Math.min(MAX_Y, (parseInt(el.value)||1980)+d)); }
+function callYear(){
+  const c = CARDS[S.cur];
+  const g = parseInt($('year-input').value);
+  const diff = Math.abs(g - c.y);
+  S.sinceBonus = 0;
+  markSeen(S.cur);
+  if (diff <= 2){ S.tokens++; toast('good', diff === 0 ? 'Dead on. '+c.y+'.' : 'Close enough. '+c.y+'. Token earned.', c.f); }
+  else { toast('bad', 'It was '+c.y+'. You said '+g+'.', c.f); }
+  // bonus card also joins the timeline at its true spot
+  S.timeline.splice(insertionIndex(S.timeline, c.y), 0, S.cur);
+  drawSolo();
+}
+function useSkip(){
+  if (S.tokens <= 0) return;
+  S.tokens--; markSeen(S.cur);
+  toast('good', 'Skipped.', CARDS[S.cur].t + ' was ' + CARDS[S.cur].y + '.');
+  drawSolo();
+}
+function placeSolo(slotIdx){
+  const c = CARDS[S.cur];
+  markSeen(S.cur);
+  if (fits(S.timeline, slotIdx, c.y)){
+    S.timeline.splice(slotIdx, 0, S.cur);
+    S.streak++; S.placed++; S.sinceBonus++;
+    const best = store.get('best', 0);
+    if (S.streak > best) store.set('best', S.streak);
+    const after = () => { drawSolo(); };
+    if (c.s){ sleeperReveal(c, after); renderSoloStatic(slotIdx); }
+    else { lastRevealed = c.t; toast('good', c.y + '. Correct.', c.f, 3400, true); after(); highlightAfterDraw(slotIdx); }
+  } else {
+    S.lives--; S.streak = 0;
+    // missed card is revealed and discarded; you never retry a card you've seen the year for
+    if (c.s){ sleeperReveal(c, () => { if (S.lives <= 0) endSolo(); else drawSolo(); }); }
+    else {
+      lastRevealed = c.t; toast('bad', 'Nope. '+c.t+' was '+c.y+'.', c.f, 4200, true);
+      if (S.lives <= 0){ endSolo(); } else { drawSolo(); }
+    }
+  }
+}
+function renderSoloStatic(slotIdx){
+  renderTimeline($('s-timeline'), S.timeline, false);
+  highlightNew($('s-timeline'), slotIdx);
+}
+function highlightAfterDraw(slotIdx){ highlightNew($('s-timeline'), slotIdx); }
+function endSolo(msg){
+  lastResult = { mode:'solo', placed:S.placed };
+  $('over-title').textContent = msg || 'Out of lives';
+  $('over-num').textContent = S.placed;
+  $('over-sub').textContent = 'cards placed · best streak ' + store.get('best', 0);
+  $('over-scores').innerHTML = '';
+  $('over-again').textContent = 'Play again';
+  $('over-again').onclick = startSolo;
+  show('over');
+}
+
+// ---------- party ----------
+let P = null;
+function addPlayerInput(name){
+  const holder = $('player-inputs');
+  if (holder.children.length >= 6) return;
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.placeholder = 'Player ' + (holder.children.length + 1); inp.maxLength = 14;
+  if (name) inp.value = name;
+  holder.appendChild(inp);
+}
+function startParty(){
+  const names = [...$('player-inputs').querySelectorAll('input')]
+    .map((el,i) => el.value.trim() || ('Player ' + (i+1)))
+    .slice(0, 6);
+  if (names.length < 2){ toast('bad', 'Need at least 2 players.'); return; }
+  const deck = buildDeck();
+  P = { deck, players: names.map(n => ({ name:n, timeline:[deck.shift()], tokens:2 })),
+        turn: 0, cur: null, stealing: null, stealTried: [] };
+  drawParty();
+  show('party');
+}
+function activePlayer(){ return P.players[P.stealing != null ? P.stealing : P.turn]; }
+function nextTurn(){ P.turn = (P.turn + 1) % P.players.length; P.stealing = null; P.stealTried = []; }
+function drawParty(){
+  if (!P.deck.length){ endParty(null, 'Deck ran dry.'); return; }
+  P.cur = P.deck.shift(); P.stealing = null; P.stealTried = [];
+  renderParty();
+}
+function renderParty(){
+  const pl = activePlayer();
+  const c = CARDS[P.cur];
+  $('p-name').textContent = pl.name + (P.stealing != null ? ' can steal' : "'s turn");
+  $('p-cards').textContent = pl.timeline.length;
+  $('p-tokens').textContent = pl.tokens;
+  $('p-steal').innerHTML = P.stealing != null
+    ? '<div class="steal-banner">STEAL CHANCE &middot; ' + CARDS[P.cur].t + ' &middot; place it right and it’s yours</div>' : '';
+  $('p-draw').innerHTML =
+    '<div class="cat">'+catName(c.c)+'</div>'+
+    '<h2 class="card-title">'+c.t+'</h2>'+
+    '<div class="hint">'+pl.name+': tap where it lands in your timeline.</div>'+
+    (P.stealing == null && pl.tokens > 0 ? '<button class="btn ghost small" onclick="partySkip()">Use a Skip</button>' : '');
+  renderTimeline($('p-timeline'), pl.timeline, true, placeParty);
+}
+function partySkip(){
+  const pl = activePlayer();
+  if (pl.tokens <= 0 || P.stealing != null) return;
+  pl.tokens--; markSeen(P.cur);
+  toast('good', 'Skipped.', CARDS[P.cur].t + ' was ' + CARDS[P.cur].y + '.');
+  nextTurn();
+  drawParty();
+}
+function placeParty(slotIdx){
+  const pl = activePlayer();
+  const c = CARDS[P.cur];
+  markSeen(P.cur);
+  if (fits(pl.timeline, slotIdx, c.y)){
+    pl.timeline.splice(slotIdx, 0, P.cur);
+    const stolen = P.stealing != null;
+    const won = pl.timeline.length >= 10;
+    const finish = () => {
+      if (won){ endParty(pl); return; }
+      nextTurn();
+      drawParty();
+    };
+    if (c.s){ sleeperReveal(c, finish); }
+    else { toast('good', c.y + '. ' + pl.name + (stolen ? ' steals it.' : ' keeps it.'), c.f); finish(); }
+  } else {
+    // miss: card passes left for a steal, one attempt per player, year stays hidden until resolved
+    const actor = P.stealing != null ? P.stealing : P.turn;
+    P.stealTried.push(actor);
+    let next = (actor + 1) % P.players.length;
+    while (P.stealTried.includes(next) && P.stealTried.length < P.players.length){
+      next = (next + 1) % P.players.length;
+    }
+    if (P.stealTried.length >= P.players.length){
+      const dead = () => { nextTurn(); drawParty(); };
+      if (c.s){ sleeperReveal(c, dead); }
+      else { toast('bad', 'Nobody got it. '+c.t+' was '+c.y+'.', c.f, 4000); dead(); }
+    } else {
+      P.stealing = next;
+      toast('bad', 'Missed. '+c.t+' passes to '+P.players[next].name+'.', null, 2600);
+      renderParty();
+    }
+  }
+}
+function endParty(winner, msg){
+  lastResult = { mode:'party', winner: winner ? winner.name : null };
+  $('over-title').textContent = winner ? winner.name + ' wins' : (msg || 'Game over');
+  $('over-num').textContent = winner ? winner.timeline.length : '';
+  $('over-sub').textContent = winner ? 'first to 10 cards' : '';
+  $('over-scores').innerHTML = P.players
+    .slice().sort((a,b)=>b.timeline.length-a.timeline.length)
+    .map(p=>'<div class="score-row"><span>'+p.name+'</span><span class="n">'+p.timeline.length+' cards</span></div>').join('');
+  $('over-again').textContent = 'Rematch';
+  $('over-again').onclick = () => { show('party-setup'); };
+  show('over');
+}
+
+// ---------- shared ----------
+let lastResult = null;
+function copyResult(){
+  const txt = lastResult && lastResult.mode === 'solo'
+    ? 'Before My Time (or maybe not): I placed ' + lastResult.placed + ' cards. Think you know when things happened? You do not.'
+    : 'Before My Time (or maybe not): ' + (lastResult && lastResult.winner ? lastResult.winner + ' took the table.' : 'We played. It got loud.');
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(()=>toast('good','Copied.','Paste it somewhere braggy.'));
+  } else { toast('good', txt); }
+}
+function renderHome(){
+  $('deck-count').textContent = CARDS.length;
+  $('best-streak').textContent = store.get('best', 0);
+}
+
+// init
+renderHome();
+addPlayerInput(); addPlayerInput();
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
