@@ -50,6 +50,43 @@ $$;
 grant execute on function daily_board(int) to anon;
 ```
 
+### All-time leaderboards (Line 'Em Up + Older or Younger?)
+Run this second block too, to enable the all-time boards on the Leaderboards
+screen:
+
+```sql
+create table if not exists scores (
+  id         bigint generated always as identity primary key,
+  game       text not null,
+  name       text not null,
+  score      int  not null,
+  created_at timestamptz not null default now()
+);
+
+alter table scores enable row level security;
+
+create policy "insert score" on scores
+  for insert to anon
+  with check (
+    game in ('solo','versus')
+    and score between 0 and 100000
+    and char_length(name) between 1 and 16
+  );
+
+create or replace function top_scores(g text)
+returns table(name text, score int)
+language sql security definer set search_path = public as $$
+  select name, max(score)::int as score
+  from scores
+  where game = g
+  group by name
+  order by score desc
+  limit 50;
+$$;
+
+grant execute on function top_scores(text) to anon;
+```
+
 > Note: anonymous clients can **insert** and can call **daily_board**, but they
 > cannot read the raw `daily_scores` rows directly. The game shows one row per
 > name (best score first). It is not cheat-proof — a determined person could

@@ -366,6 +366,7 @@
       <span class="pill">Best streak <b id="best-streak">0</b></span>
     </div>
     <button class="btn ghost small" style="width:100%;margin-top:12px" onclick="show('stats')">View stats &amp; badges</button>
+    <button class="btn ghost small" id="lb-btn" style="width:100%;margin-top:8px;display:none" onclick="show('leaderboards')">Leaderboards</button>
     <button class="btn ghost" id="install-btn" style="display:none" onclick="installApp()">Install app</button>
     <p class="footer-note">Gen X pack v1 &middot; Every year verified, no guesses shipped.<br>
       <button class="flag" onclick="showFlags()">View flagged cards</button></p>
@@ -411,6 +412,15 @@
     </div>
     <div class="draw" id="p-draw"></div>
     <div class="timeline" id="p-timeline"></div>
+  </section>
+
+  <!-- LEADERBOARDS -->
+  <section id="leaderboards" class="screen">
+    <div class="topbar">
+      <span class="brand">Leaderboards</span>
+      <button class="quit" onclick="show('home')">&larr; Back</button>
+    </div>
+    <div id="lb-body"></div>
   </section>
 
   <!-- STATS -->
@@ -461,6 +471,7 @@
     <div id="over-scores"></div>
     <button class="btn primary" onclick="copyResult()">Copy result</button>
     <button class="btn secondary" id="over-again"></button>
+    <button class="btn ghost" id="over-lb" style="display:none" onclick="show('leaderboards')">Leaderboards</button>
     <button class="btn ghost" onclick="show('home')">Home</button>
   </section>
 
@@ -653,7 +664,7 @@ function markSeen(i){ const s = store.get('seen', []); if (!s.includes(CARDS[i].
 function $(id){ return document.getElementById(id); }
 function show(id){ dismissToast(); if (dailyTimer){ clearInterval(dailyTimer); dailyTimer = null; }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active');
-  if (id==='home') renderHome(); if (id==='stats') renderStats(); window.scrollTo(0,0); }
+  if (id==='home') renderHome(); if (id==='stats') renderStats(); if (id==='leaderboards') renderLeaderboards(); window.scrollTo(0,0); }
 function catName(k){ return CATEGORIES[k] || k; }
 let toastTimer = null;
 function toast(kind, head, fact, ms, flaggable){
@@ -833,6 +844,8 @@ function renderSoloStatic(slotIdx){
 function highlightAfterDraw(slotIdx){ highlightNew($('s-timeline'), slotIdx); }
 function endSolo(msg, reveal){
   lastResult = { mode:'solo', placed:S.placed };
+  if (S.placed > store.get('bestPlaced', 0)) store.set('bestPlaced', S.placed);
+  submitScore('solo', S.placed); // no-op unless a leaderboard is configured
   $('over-title').textContent = msg || 'Out of lives';
   $('over-num').textContent = S.placed;
   $('over-sub').textContent = 'cards placed · best streak ' + store.get('best', 0);
@@ -843,6 +856,7 @@ function endSolo(msg, reveal){
     : '';
   $('over-again').textContent = 'Play again';
   $('over-again').onclick = startSolo;
+  { const olb = $('over-lb'); if (olb) olb.style.display = scoreboardOn() ? 'block' : 'none'; }
   show('over');
 }
 
@@ -947,6 +961,7 @@ function endParty(winner, msg){
     .map(p=>'<div class="score-row"><span>'+p.name+'</span><span class="n">'+p.timeline.length+' cards</span></div>').join('');
   $('over-again').textContent = 'Rematch';
   $('over-again').onclick = () => { show('party-setup'); };
+  { const olb = $('over-lb'); if (olb) olb.style.display = scoreboardOn() ? 'block' : 'none'; }
   show('over');
 }
 
@@ -976,6 +991,7 @@ function renderHome(){
     '<span class="db-r">' + (drec ? ('&#10003; ' + drec.score + '/5 today') : 'Play today’s five') +
       (dstreak > 1 ? (' &middot; &#128293;' + dstreak) : '') + '</span>';
   updateSoundUI();
+  const lbb = $('lb-btn'); if (lbb) lbb.style.display = scoreboardOn() ? 'block' : 'none';
 }
 function toggleCatPanel(){
   const p = $('cat-picker'); const open = p.classList.toggle('open');
@@ -1102,10 +1118,12 @@ function chooseVersus(key){
       '<button class="btn primary" onclick="drawVersus()">Next matchup</button>';
   } else {
     lastResult = { mode:'versus', streak:V.streak };
+    submitScore('versus', V.streak); // no-op unless a leaderboard is configured
     $('v-result').innerHTML =
       '<div class="vs-banner bad">Nope — ' + older.t + ' (' + older.y + ') is older, by ' + gapTxt + '.</div>' +
       '<span class="vs-end pill">Streak ended at <b>' + V.streak + '</b> &middot; best <b>' + store.get('bestVersus', 0) + '</b></span>' +
       '<button class="btn secondary" onclick="copyResult()">Copy result</button>' +
+      (scoreboardOn() ? '<button class="btn ghost" onclick="show(\'leaderboards\')">Leaderboards</button>' : '') +
       '<button class="btn versus" onclick="startVersus()">Play again</button>' +
       '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
   }
@@ -1182,6 +1200,73 @@ function renderBoard(rows, day){
   el.innerHTML = '<div class="stat-sub" style="margin-top:22px">Daily #' + day + ' &middot; ' + board.length + ' played</div>' +
     '<div class="lb">' + list + '</div>' +
     '<button class="flag" onclick="changeName()">Change name</button>';
+}
+
+// ---------- all-time leaderboards (Line 'Em Up + Older or Younger?) ----------
+async function submitScore(game, score){
+  if (!scoreboardOn()) return;
+  const name = playerName(); if (!name || !(score > 0)) return;
+  if (score <= store.get('sub:' + game, 0)) return; // only post an improvement
+  try {
+    const r = await fetch(SCOREBOARD.url + '/rest/v1/scores', {
+      method: 'POST',
+      headers: { apikey: SCOREBOARD.key, Authorization: 'Bearer ' + SCOREBOARD.key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ game, name, score })
+    });
+    if (r.ok) store.set('sub:' + game, score);
+  } catch(e){}
+}
+async function fetchTop(game){
+  if (!scoreboardOn()) return null;
+  try {
+    const r = await fetch(SCOREBOARD.url + '/rest/v1/rpc/top_scores', {
+      method: 'POST',
+      headers: { apikey: SCOREBOARD.key, Authorization: 'Bearer ' + SCOREBOARD.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ g: game })
+    });
+    if (!r.ok) return null; return await r.json();
+  } catch(e){ return null; }
+}
+function boardListHtml(rows, fmt){
+  if (!rows || !rows.length) return '<p class="sub" style="text-align:left;margin:6px 0 0">No scores yet — be the first!</p>';
+  const seen = new Set(), board = [];
+  for (const r of rows){ const k = (r.name || '').toLowerCase(); if (!k || seen.has(k)) continue; seen.add(k); board.push(r); }
+  const me = playerName().toLowerCase();
+  return '<div class="lb">' + board.map((r, i) => {
+    const mine = (r.name || '').toLowerCase() === me;
+    const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+    return '<div class="lb-row' + (mine ? ' me' : '') + '"><span class="lb-rank">' + rank + '</span>' +
+      '<span class="lb-name">' + escapeHtml(r.name) + '</span><span class="lb-score">' + fmt(r.score) + '</span></div>';
+  }).join('') + '</div>';
+}
+function flushBests(){ submitScore('solo', store.get('bestPlaced', 0)); submitScore('versus', store.get('bestVersus', 0)); }
+function setNameFromLb(){
+  const v = ($('lb-name') ? $('lb-name').value : '').trim().slice(0, 16);
+  if (!v){ toast('bad', 'Enter a name first.'); return; }
+  store.set('name', v); flushBests(); renderLeaderboards();
+}
+function changeNameLb(){ store.set('name', ''); renderLeaderboards(); }
+async function renderLeaderboards(){
+  const body = $('lb-body'); if (!body) return;
+  if (!scoreboardOn()){ body.innerHTML = '<p class="sub" style="text-align:left">No leaderboard is set up.</p>'; return; }
+  if (!playerName()){
+    body.innerHTML = '<div class="stat-sub" style="margin-top:4px">Join the boards</div>' +
+      '<div class="join"><input id="lb-name" maxlength="16" placeholder="Your name" autocomplete="off">' +
+      '<button class="btn secondary" onclick="setNameFromLb()">Save</button></div>' +
+      '<p class="sub" style="text-align:left;margin-top:10px">Add a name to post your scores and see where you rank.</p>';
+    const inp = $('lb-name'); if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') setNameFromLb(); });
+    return;
+  }
+  flushBests(); // make sure this device's bests are on the board
+  body.innerHTML =
+    '<div class="stat-sub" style="margin-top:4px">Daily #' + dailyNumber() + ' &middot; today</div><div id="lb-daily">…</div>' +
+    '<div class="stat-sub">Line ’Em Up &middot; most cards placed</div><div id="lb-solo">…</div>' +
+    '<div class="stat-sub">Older or Younger? &middot; longest streak</div><div id="lb-versus">…</div>' +
+    '<button class="flag" onclick="changeNameLb()">Change name</button>';
+  const [d, s, v] = await Promise.all([fetchBoard(dailyNumber()), fetchTop('solo'), fetchTop('versus')]);
+  if ($('lb-daily'))  $('lb-daily').innerHTML  = boardListHtml(d, x => x + '/5');
+  if ($('lb-solo'))   $('lb-solo').innerHTML   = boardListHtml(s, x => x + ' cards');
+  if ($('lb-versus')) $('lb-versus').innerHTML = boardListHtml(v, x => x + ' streak');
 }
 
 // ---------- daily challenge (same five for everyone, one try a day) ----------
