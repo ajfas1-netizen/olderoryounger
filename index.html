@@ -23,7 +23,40 @@
       radial-gradient(680px 480px at 92% -2%, rgba(255,61,139,.20), transparent 55%),
       var(--bg);
     background-attachment:fixed;}
-  .wrap{max-width:520px; margin:0 auto; padding:16px;}
+  .wrap{max-width:520px; margin:0 auto; padding:16px; position:relative; z-index:1;}
+  /* ---------- retro 80s/90s scene ---------- */
+  .scene{position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none;}
+  .scene .sun{position:absolute; left:50%; top:40%; transform:translate(-50%,-50%);
+    width:250px; height:250px; border-radius:50%;
+    background:linear-gradient(180deg,#ffe98a 0%, #ff9d3f 42%, #ff3d8b 100%);
+    opacity:.32; box-shadow:0 0 100px 34px rgba(255,90,150,.20);
+    -webkit-mask-image:linear-gradient(to bottom,#000 0 52%,transparent 52%),repeating-linear-gradient(to bottom,#000 0 8px,transparent 8px 15px);
+    mask-image:linear-gradient(to bottom,#000 0 52%,transparent 52%),repeating-linear-gradient(to bottom,#000 0 8px,transparent 8px 15px);
+    -webkit-mask-composite:source-over; mask-composite:add;}
+  .scene .grid{position:absolute; left:-30%; right:-30%; bottom:-12%; height:58%;
+    background-image:
+      linear-gradient(rgba(55,219,230,.55) 2px, transparent 2px),
+      linear-gradient(90deg, rgba(255,61,139,.5) 2px, transparent 2px);
+    background-size:100% 42px, 44px 100%;
+    transform:perspective(320px) rotateX(72deg); transform-origin:bottom center;
+    -webkit-mask-image:linear-gradient(to top,#000 8%, transparent 78%);
+    mask-image:linear-gradient(to top,#000 8%, transparent 78%);
+    opacity:.5; animation:gridflow 5.5s linear infinite;}
+  @keyframes gridflow{from{background-position:0 0,0 0;} to{background-position:0 42px,0 0;}}
+  .scene .scan{position:absolute; inset:0; opacity:.5; mix-blend-mode:overlay;
+    background:repeating-linear-gradient(to bottom, rgba(255,255,255,.05) 0 1px, transparent 1px 3px);}
+  .scene .shape{position:absolute; opacity:.4; filter:drop-shadow(0 0 6px rgba(255,255,255,.14));
+    animation:floaty 11s ease-in-out infinite;}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(var(--r,0deg));}
+    50%{transform:translateY(-16px) rotate(calc(var(--r,0deg) + 6deg));}}
+  .sh1{top:71%; left:6%; --r:-8deg;}
+  .sh2{top:22%; right:7%; --r:10deg; animation-delay:-3s;}
+  .sh3{top:58%; left:3%; --r:-4deg; animation-delay:-6s;}
+  .sh4{bottom:14%; right:5%; --r:6deg; animation-delay:-2s;}
+  .sh5{top:46%; right:11%; --r:0deg; animation-delay:-5s;}
+  .sh6{bottom:24%; left:9%; --r:8deg; animation-delay:-8s;}
+  @media (max-width:560px){ .sh5,.sh6{display:none;} }
+  @media (prefers-reduced-motion:reduce){ .scene .grid,.scene .shape{animation:none;} }
   h1{font-size:40px; line-height:1.02; margin:0; letter-spacing:-1.5px; font-weight:900;
     text-shadow:0 2px 30px rgba(255,61,139,.18);}
   .tag{font-weight:900;
@@ -149,6 +182,17 @@
 </style>
 </head>
 <body>
+<div class="scene" aria-hidden="true">
+  <div class="sun"></div>
+  <div class="grid"></div>
+  <svg class="shape sh1" width="60" height="54" viewBox="0 0 60 54"><path d="M30 4 56 50 4 50 Z" fill="none" stroke="#ffcf3f" stroke-width="3" stroke-linejoin="round"/></svg>
+  <svg class="shape sh2" width="52" height="52" viewBox="0 0 52 52"><circle cx="26" cy="26" r="21" fill="none" stroke="#37dbe6" stroke-width="3"/></svg>
+  <svg class="shape sh3" width="94" height="30" viewBox="0 0 94 30"><path d="M3 15 q11 -15 22 0 t22 0 t22 0 t22 0" fill="none" stroke="#ff3d8b" stroke-width="3" stroke-linecap="round"/></svg>
+  <svg class="shape sh4" width="90" height="26" viewBox="0 0 90 26"><path d="M3 20 15 6 27 20 39 6 51 20 63 6 75 20 87 6" fill="none" stroke="#a55cff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <svg class="shape sh5" width="40" height="40" viewBox="0 0 40 40"><path d="M20 3 V37 M3 20 H37 M8 8 32 32 M32 8 8 32" stroke="#4fe0a0" stroke-width="2.4" stroke-linecap="round"/></svg>
+  <svg class="shape sh6" width="54" height="54" viewBox="0 0 54 54"><g fill="#ffcf3f"><circle cx="7" cy="7" r="3"/><circle cx="27" cy="7" r="3"/><circle cx="47" cy="7" r="3"/><circle cx="7" cy="27" r="3"/><circle cx="27" cy="27" r="3"/><circle cx="47" cy="27" r="3"/><circle cx="7" cy="47" r="3"/><circle cx="27" cy="47" r="3"/><circle cx="47" cy="47" r="3"/></g></svg>
+  <div class="scan"></div>
+</div>
 <div class="wrap">
 
   <!-- HOME -->
