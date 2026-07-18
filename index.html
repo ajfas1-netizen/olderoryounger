@@ -5,7 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0b0a14">
 <title>Before My Time (or maybe not)</title>
+<meta name="description" content="The pop-culture timeline game — some of it is way older than you think. Play a new Daily Five, go for a streak, or pass the phone.">
 <link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Before My Time">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Before My Time (or maybe not)">
+<meta property="og:title" content="Before My Time (or maybe not)">
+<meta property="og:description" content="The pop-culture timeline game. Which is older — Dirty Dancing or the pogo stick? New Daily Five every day.">
+<meta property="og:url" content="https://ajfas1-netizen.github.io/olderoryounger/">
+<meta property="og:image" content="https://ajfas1-netizen.github.io/olderoryounger/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Before My Time (or maybe not)">
+<meta name="twitter:description" content="The pop-culture timeline game. Some of it is way older than you think. New Daily Five every day.">
+<meta name="twitter:image" content="https://ajfas1-netizen.github.io/olderoryounger/og.png">
 <style>
   :root{
     --bg:#0b0a14; --panel:#17142a; --panel2:#221d3d; --line:rgba(255,255,255,.08);
@@ -207,6 +225,33 @@
   .dd-streak{margin-top:12px; font-weight:800; color:var(--pink);}
   .dd-next{margin-top:16px; color:var(--dim); font-size:13px;}
   .dd-next b{color:var(--cyan); font-variant-numeric:tabular-nums;}
+  /* ---------- floating sound button ---------- */
+  .sound-fab{position:fixed; right:14px; bottom:calc(14px + env(safe-area-inset-bottom)); z-index:70;
+    width:46px; height:46px; border-radius:50%; border:1px solid var(--line); cursor:pointer;
+    background:rgba(23,20,42,.85); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px);
+    font-size:20px; line-height:1; box-shadow:0 8px 22px rgba(0,0,0,.5); transition:transform .1s ease, border-color .15s ease;}
+  .sound-fab:hover{border-color:rgba(55,219,230,.5);}
+  .sound-fab:active{transform:scale(.92);}
+  .sound-fab.off{opacity:.75;}
+  /* ---------- stats ---------- */
+  .stat-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:6px;}
+  .stat-tile{background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:14px; padding:14px 15px;}
+  .st-n{font-size:28px; font-weight:900; color:var(--ink); line-height:1;}
+  .st-l{font-size:12px; color:var(--dim); font-weight:700; margin-top:4px;}
+  .stat-sub{font-size:12px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase; color:var(--cyan); margin:22px 0 10px;}
+  .stat-modes{display:flex; flex-wrap:wrap; gap:8px;}
+  .acc-row{margin:12px 0;}
+  .acc-top{display:flex; justify-content:space-between; font-size:14px; font-weight:700;}
+  .acc-p{color:var(--yellow);}
+  .acc-bar{height:8px; background:rgba(255,255,255,.06); border-radius:99px; margin-top:6px; overflow:hidden;}
+  .acc-bar i{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--cyan),var(--purple));}
+  .acc-n{font-size:11px; color:var(--dim); margin-top:4px;}
+  .badge-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+  .badge{background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:14px; padding:15px 12px; text-align:center; opacity:.5;}
+  .badge.on{opacity:1; border-color:rgba(255,207,63,.4); background:linear-gradient(180deg, rgba(255,207,63,.08), rgba(255,255,255,.02));}
+  .bg-ic{font-size:26px;}
+  .bg-nm{font-weight:800; font-size:14px; margin-top:5px;}
+  .bg-ds{font-size:11.5px; color:var(--dim); margin-top:4px; line-height:1.32;}
   /* versus / older-or-younger mode */
   .vs-q{text-align:center; font-size:15px; color:var(--dim); font-weight:700; margin:2px 0 14px;}
   .vs-q b{color:var(--ink);}
@@ -250,6 +295,7 @@
   <svg class="shape sh6" width="54" height="54" viewBox="0 0 54 54"><g fill="#ffcf3f"><circle cx="7" cy="7" r="3"/><circle cx="27" cy="7" r="3"/><circle cx="47" cy="7" r="3"/><circle cx="7" cy="27" r="3"/><circle cx="27" cy="27" r="3"/><circle cx="47" cy="27" r="3"/><circle cx="7" cy="47" r="3"/><circle cx="27" cy="47" r="3"/><circle cx="47" cy="47" r="3"/></g></svg>
   <div class="scan"></div>
 </div>
+<button class="sound-fab" id="sound-fab" onclick="toggleFx()" aria-label="Toggle sound"></button>
 <div class="wrap">
 
   <!-- HOME -->
@@ -282,9 +328,10 @@
       <span class="pill">Deck <b id="deck-count"></b> cards</span>
       <span class="pill">Best streak <b id="best-streak">0</b></span>
     </div>
+    <button class="btn ghost small" style="width:100%;margin-top:12px" onclick="show('stats')">View stats &amp; badges</button>
+    <button class="btn ghost" id="install-btn" style="display:none" onclick="installApp()">Install app</button>
     <p class="footer-note">Gen X pack v1 &middot; Every year verified, no guesses shipped.<br>
-      <button class="flag" onclick="showFlags()">View flagged cards</button>
-      &middot; <button class="flag" id="fx-toggle" onclick="toggleFx()">Sound on</button></p>
+      <button class="flag" onclick="showFlags()">View flagged cards</button></p>
   </section>
 
   <!-- SOLO -->
@@ -327,6 +374,15 @@
     </div>
     <div class="draw" id="p-draw"></div>
     <div class="timeline" id="p-timeline"></div>
+  </section>
+
+  <!-- STATS -->
+  <section id="stats" class="screen">
+    <div class="topbar">
+      <span class="brand">Your Stats</span>
+      <button class="quit" onclick="show('home')">&larr; Back</button>
+    </div>
+    <div id="stats-body"></div>
   </section>
 
   <!-- DAILY CHALLENGE -->
@@ -435,7 +491,8 @@ const FX = (() => {
   function buzz(pat){ if (enabled() && navigator.vibrate){ try { navigator.vibrate(pat); } catch(e){} } }
   return { play, buzz, enabled, toggle(){ store.set('fx', !enabled()); return enabled(); } };
 })();
-function toggleFx(){ const on = FX.toggle(); if (on) FX.play('tick'); const b = $('fx-toggle'); if (b) b.textContent = on ? 'Sound on' : 'Sound off'; }
+function updateSoundUI(){ const on = FX.enabled(); const f = $('sound-fab'); if (f){ f.textContent = on ? '🔊' : '🔇'; f.classList.toggle('off', !on); f.title = on ? 'Sound on — tap to mute' : 'Muted — tap for sound'; } }
+function toggleFx(){ const on = FX.toggle(); if (on) FX.play('tick'); updateSoundUI(); }
 function isMilestone(n){ return n > 0 && n % 5 === 0; }
 function countUp(el, to, ms){
   if (!el) return;
@@ -468,6 +525,69 @@ function celebrate(){
   })();
 }
 
+// ---------- stats & achievements ----------
+function getStats(){ const s = store.get('stats', {}); s.games = s.games || {}; s.answers = s.answers || {c:0,t:0}; s.cat = s.cat || {}; s.sleeperHits = s.sleeperHits || 0; s.perfectDailies = s.perfectDailies || 0; return s; }
+function totalGames(s){ return Object.values(s.games || {}).reduce((a,b)=>a+b,0); }
+function bumpGame(mode){ const s = getStats(); s.games[mode] = (s.games[mode]||0)+1; store.set('stats', s); checkBadges(); }
+function recordAnswer(correct, cat, isSleeper){
+  const s = getStats(); s.answers.t++; if (correct) s.answers.c++;
+  if (cat){ const e = s.cat[cat] || {c:0,t:0}; e.t++; if (correct) e.c++; s.cat[cat] = e; }
+  if (isSleeper && correct) s.sleeperHits++;
+  store.set('stats', s); checkBadges();
+}
+function recordPerfectDaily(){ const s = getStats(); s.perfectDailies++; store.set('stats', s); }
+const BADGES = [
+  { id:'first',  icon:'🎬', name:'First Timer',       desc:'Play your first game',                    test:s=>totalGames(s)>=1 },
+  { id:'sharp',  icon:'👁️', name:'Sharp Eye',          desc:'Hit a 10 streak in Head-to-Head',         test:()=>store.get('bestVersus',0)>=10 },
+  { id:'deep',   icon:'🧠', name:'Deep Cut',           desc:'Hit a 15 streak in Solo',                 test:()=>store.get('best',0)>=15 },
+  { id:'sleeper',icon:'😴', name:'Sleeper Slayer',     desc:'Correctly place 10 sleeper cards',        test:s=>(s.sleeperHits||0)>=10 },
+  { id:'perfect',icon:'⭐', name:'Flawless Five',       desc:'Score 5/5 on a Daily',                    test:s=>(s.perfectDailies||0)>=1 },
+  { id:'habit',  icon:'🔥', name:'Creature of Habit',  desc:'Reach a 5-day Daily streak',              test:()=>store.get('dailyStreak',0)>=5 },
+  { id:'expert', icon:'🏆', name:'Decade Master',      desc:'90%+ in a category (10+ answers)',        test:s=>Object.values(s.cat||{}).some(e=>e.t>=10 && e.c/e.t>=0.9) },
+  { id:'all',    icon:'🎲', name:'All-Rounder',        desc:'Play all four game modes',                test:s=>['solo','versus','daily','party'].every(m=>(s.games||{})[m]>0) },
+];
+function checkBadges(){
+  const s = getStats(), have = new Set(store.get('badges', [])), newly = [];
+  for (const b of BADGES){ if (!have.has(b.id) && b.test(s)){ have.add(b.id); newly.push(b); } }
+  if (newly.length){
+    store.set('badges', [...have]);
+    const b = newly[0];
+    toast('good', b.icon + ' Badge unlocked — ' + b.name, newly.length > 1 ? ('+' + (newly.length-1) + ' more, see Stats') : b.desc, 3600);
+    if (!REDUCE) celebrate();
+  }
+}
+function renderStats(){
+  const s = getStats(), g = s.games || {};
+  const acc = s.answers.t ? Math.round(100 * s.answers.c / s.answers.t) : 0;
+  const tiles = [
+    ['Games played', totalGames(s)],
+    ['Overall accuracy', s.answers.t ? acc + '%' : '—'],
+    ['Best Solo streak', store.get('best', 0)],
+    ['Best H2H streak', store.get('bestVersus', 0)],
+  ];
+  let html = '<div class="stat-grid">' + tiles.map(t=>'<div class="stat-tile"><div class="st-n">'+t[1]+'</div><div class="st-l">'+t[0]+'</div></div>').join('') + '</div>';
+  html += '<div class="stat-sub">By mode</div><div class="stat-modes">' +
+    [['Daily','daily'],['Solo','solo'],['Head-to-Head','versus'],['Party','party']].map(m=>'<span class="pill">'+m[0]+' <b>'+(g[m[1]]||0)+'</b></span>').join('') + '</div>';
+  const cats = CAT_KEYS.map(k=>({k, e:s.cat[k]})).filter(x=>x.e && x.e.t > 0)
+    .map(x=>({k:x.k, t:x.e.t, c:x.e.c, p:Math.round(100*x.e.c/x.e.t)})).sort((a,b)=>b.p-a.p);
+  html += '<div class="stat-sub">Accuracy by category</div>';
+  if (cats.length){
+    html += cats.map(x=>'<div class="acc-row"><div class="acc-top"><span>'+CATEGORIES[x.k]+'</span><span class="acc-p">'+x.p+'%</span></div>'+
+      '<div class="acc-bar"><i style="width:'+x.p+'%"></i></div><div class="acc-n">'+x.c+' / '+x.t+' correct</div></div>').join('');
+  } else {
+    html += '<p class="sub" style="text-align:left;margin:6px 0 0">Play Solo or Party to build your per-category accuracy.</p>';
+  }
+  const have = new Set(store.get('badges', []));
+  html += '<div class="stat-sub">Badges &middot; ' + have.size + '/' + BADGES.length + '</div><div class="badge-grid">' +
+    BADGES.map(b=>{ const on = have.has(b.id); return '<div class="badge'+(on?' on':'')+'"><div class="bg-ic">'+b.icon+'</div><div class="bg-nm">'+b.name+'</div><div class="bg-ds">'+b.desc+'</div></div>'; }).join('') + '</div>';
+  $('stats-body').innerHTML = html;
+}
+
+// ---------- install prompt (Chrome/Android) ----------
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; const b = $('install-btn'); if (b) b.style.display = 'block'; });
+function installApp(){ if (!deferredPrompt) return; deferredPrompt.prompt(); deferredPrompt.userChoice.finally(()=>{ deferredPrompt = null; const b = $('install-btn'); if (b) b.style.display = 'none'; }); }
+
 // Build a deck of card indices: unseen first, sleepers spaced roughly every 8-10 draws.
 function buildDeck(){
   const seen = new Set(store.get('seen', []));
@@ -496,7 +616,7 @@ function markSeen(i){ const s = store.get('seen', []); if (!s.includes(CARDS[i].
 function $(id){ return document.getElementById(id); }
 function show(id){ dismissToast(); if (dailyTimer){ clearInterval(dailyTimer); dailyTimer = null; }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active')); $(id).classList.add('active');
-  if (id==='home') renderHome(); window.scrollTo(0,0); }
+  if (id==='home') renderHome(); if (id==='stats') renderStats(); window.scrollTo(0,0); }
 function catName(k){ return CATEGORIES[k] || k; }
 let toastTimer = null;
 function toast(kind, head, fact, ms, flaggable){
@@ -584,6 +704,7 @@ function insertionIndex(timeline, year){
 let S = null;
 function startSolo(){
   if (catCount() < MIN_CARDS){ notEnoughCats(); return; }
+  bumpGame('solo');
   S = { deck: buildDeck(), timeline: [], lives: 3, streak: 0, placed: 0, tokens: 1, sinceBonus: 0, cur: null, bonus: false };
   S.timeline.push(S.deck.shift()); // anchor (sleeper spacing guarantees a normal card first)
   drawSolo();
@@ -629,8 +750,9 @@ function callYear(){
   const diff = Math.abs(g - c.y);
   S.sinceBonus = 0;
   markSeen(S.cur);
-  if (diff <= 2){ S.tokens++; toast('good', diff === 0 ? 'Dead on. '+c.y+'.' : 'Close enough. '+c.y+'. Token earned.', c.f); }
-  else { toast('bad', 'It was '+c.y+'. You said '+g+'.', c.f); }
+  recordAnswer(diff <= 2, c.c, c.s);
+  if (diff <= 2){ S.tokens++; FX.play('good'); FX.buzz(15); toast('good', diff === 0 ? 'Dead on. '+c.y+'.' : 'Close enough. '+c.y+'. Token earned.', c.f); }
+  else { FX.play('bad'); FX.buzz([40,30,40]); toast('bad', 'It was '+c.y+'. You said '+g+'.', c.f); }
   // bonus card also joins the timeline at its true spot
   S.timeline.splice(insertionIndex(S.timeline, c.y), 0, S.cur);
   drawSolo();
@@ -649,6 +771,7 @@ function placeSolo(slotIdx){
     S.streak++; S.placed++; S.sinceBonus++;
     const best = store.get('best', 0);
     if (S.streak > best) store.set('best', S.streak);
+    recordAnswer(true, c.c, c.s);
     FX.play('good'); FX.buzz(15);
     if (isMilestone(S.streak)){ FX.play('win'); celebrate(); }
     const after = () => { drawSolo(); };
@@ -656,6 +779,7 @@ function placeSolo(slotIdx){
     else { lastRevealed = c.t; toast('good', c.y + '. Correct.', c.f, 3400, true); after(); highlightAfterDraw(slotIdx); }
   } else {
     S.lives--; S.streak = 0;
+    recordAnswer(false, c.c, c.s);
     FX.play('bad'); FX.buzz([40,30,40]);
     // missed card is revealed and discarded; you never retry a card you've seen the year for
     if (c.s){ sleeperReveal(c, () => { if (S.lives <= 0) endSolo(); else drawSolo(); }); }
@@ -697,6 +821,7 @@ function startParty(){
     .slice(0, 6);
   if (names.length < 2){ toast('bad', 'Need at least 2 players.'); return; }
   if (catCount() < Math.max(MIN_CARDS, names.length * 6)){ notEnoughCats(); return; }
+  bumpGame('party');
   const deck = buildDeck();
   P = { deck, players: names.map(n => ({ name:n, timeline:[deck.shift()], tokens:2 })),
         turn: 0, cur: null, stealing: null, stealTried: [] };
@@ -741,6 +866,7 @@ function placeParty(slotIdx){
     pl.timeline.splice(slotIdx, 0, P.cur);
     const stolen = P.stealing != null;
     const won = pl.timeline.length >= 10;
+    recordAnswer(true, c.c, c.s);
     if (won){ FX.play('win'); celebrate(); } else { FX.play('good'); FX.buzz(15); }
     const finish = () => {
       if (won){ endParty(pl); return; }
@@ -757,6 +883,7 @@ function placeParty(slotIdx){
     while (P.stealTried.includes(next) && P.stealTried.length < P.players.length){
       next = (next + 1) % P.players.length;
     }
+    recordAnswer(false, c.c, c.s);
     FX.play('bad'); FX.buzz([40,30,40]);
     if (P.stealTried.length >= P.players.length){
       const dead = () => { nextTurn(); drawParty(); };
@@ -807,7 +934,7 @@ function renderHome(){
     '<span class="db-l"><span class="db-badge">DAILY</span>#' + dailyNumber() + '</span>' +
     '<span class="db-r">' + (drec ? ('&#10003; ' + drec.score + '/5 today') : 'Play today’s five') +
       (dstreak > 1 ? (' &middot; &#128293;' + dstreak) : '') + '</span>';
-  const fb = $('fx-toggle'); if (fb) fb.textContent = FX.enabled() ? 'Sound on' : 'Sound off';
+  updateSoundUI();
 }
 function toggleCatPanel(){
   const p = $('cat-picker'); const open = p.classList.toggle('open');
@@ -869,6 +996,7 @@ let V = null;
 function startVersus(){
   const pool = poolIndices();
   if (pool.length < 4 || new Set(pool.map(i=>CARDS[i].y)).size < 2){ notEnoughCats(); return; }
+  bumpGame('versus');
   V = { queue: shuffle(pool.slice()), streak:0, round:0, a:null, b:null, done:false };
   drawVersus();
   show('versus');
@@ -917,6 +1045,7 @@ function chooseVersus(key){
   elA.querySelector('.tag-ow').textContent = aOlder ? 'Older' : 'Newer';
   elB.querySelector('.tag-ow').textContent = aOlder ? 'Newer' : 'Older';
   countUp(elA.querySelector('.vyear'), ca.y); countUp(elB.querySelector('.vyear'), cb.y);
+  recordAnswer(correct, null, false);
   FX.play(correct ? 'good' : 'bad'); FX.buzz(correct ? 18 : [40,30,40]);
   const older = aOlder ? ca : cb, gap = Math.abs(ca.y - cb.y);
   const gapTxt = gap + ' year' + (gap === 1 ? '' : 's');
@@ -998,6 +1127,7 @@ function chooseDaily(key){
   elA.querySelector('.tag-ow').textContent = aOlder ? 'Older' : 'Newer';
   elB.querySelector('.tag-ow').textContent = aOlder ? 'Newer' : 'Older';
   countUp(elA.querySelector('.vyear'), ca.y); countUp(elB.querySelector('.vyear'), cb.y);
+  recordAnswer(correct, null, false);
   FX.play(correct ? 'good' : 'bad'); FX.buzz(correct ? 18 : [40,30,40]);
   const older = aOlder ? ca : cb;
   $('d-progress').innerHTML = dailyDots(D.results, -1);
@@ -1017,7 +1147,8 @@ function finishDaily(){
     store.set('dailyStreak', store.get('dailyLast', null) === yesterdayKey() ? s0 + 1 : 1);
     store.set('dailyLast', todayKey());
   }
-  if (score === 5){ FX.play('win'); celebrate(); } else if (score >= 3){ FX.play('good'); }
+  if (score === 5){ recordPerfectDaily(); FX.play('win'); celebrate(); } else if (score >= 3){ FX.play('good'); }
+  bumpGame('daily');
   showDailyResult(rec);
 }
 function showDailyResult(rec){
@@ -1059,6 +1190,7 @@ function startCountdown(){
 
 // init
 renderHome();
+updateSoundUI();
 addPlayerInput(); addPlayerInput();
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')){
   navigator.serviceWorker.register('sw.js').catch(()=>{});
