@@ -1,4 +1,4 @@
-const CACHE = 'bmt-v3';
+const CACHE = 'bmt-v4';
 const ASSETS = ['.', 'index.html', 'data/cards.js', 'manifest.json', 'icon.svg',
   'icon-192.png', 'icon-512.png', 'icon-180.png', 'og.png'];
 self.addEventListener('install', e => {
