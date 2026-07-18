@@ -271,6 +271,18 @@
   .rc-tag{font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--green);
     border:1px solid rgba(79,224,160,.4); border-radius:99px; padding:2px 8px; margin-left:auto;}
   .rc-fact{color:var(--dim); font-size:12.5px; line-height:1.4; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);}
+  /* ---------- global scoreboard ---------- */
+  .gb-head{text-align:center; color:var(--dim); font-size:14px; margin:2px 0 12px;}
+  .gb-head b{color:var(--ink);}
+  .gb-dist{display:flex; flex-direction:column; gap:7px;}
+  .gb-row{display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700;}
+  .gb-row .gb-k{width:34px; color:var(--dim);}
+  .gb-row .gb-bar{flex:1; height:15px; background:rgba(255,255,255,.06); border-radius:99px; overflow:hidden;}
+  .gb-row .gb-bar i{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--cyan),var(--purple)); transition:width .5s ease;}
+  .gb-row .gb-n{width:42px; text-align:right; color:var(--dim);}
+  .gb-row.me .gb-k{color:var(--yellow);}
+  .gb-row.me .gb-bar i{background:linear-gradient(90deg,var(--yellow),var(--pink));}
+  .gb-row.me .gb-n{color:var(--yellow);}
   /* versus / older-or-younger mode */
   .vs-q{text-align:center; font-size:15px; color:var(--dim); font-weight:700; margin:2px 0 14px;}
   .vs-q b{color:var(--ink);}
@@ -1094,6 +1106,66 @@ function chooseVersus(key){
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
+// ================= GLOBAL SCOREBOARD (optional) =================
+// Off by default. To turn on a worldwide Daily scoreboard, create a free
+// Supabase project, run the SQL in SCOREBOARD_SETUP.md, then fill in these
+// two public values (or set window.BMT_SCOREBOARD before this script runs):
+const SCOREBOARD = (typeof window !== 'undefined' && window.BMT_SCOREBOARD) || {
+  url: '',   // e.g. 'https://YOURPROJECT.supabase.co'
+  key: ''    // your project's public anon key (safe to expose)
+};
+const scoreboardOn = () => !!(SCOREBOARD.url && SCOREBOARD.key);
+async function submitDailyScore(day, score){
+  if (!scoreboardOn()) return;
+  const flag = 'dsent:' + day;
+  if (store.get(flag, false)) return; // one submission per day per device
+  try {
+    const r = await fetch(SCOREBOARD.url + '/rest/v1/daily_scores', {
+      method: 'POST',
+      headers: { apikey: SCOREBOARD.key, Authorization: 'Bearer ' + SCOREBOARD.key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ day, score })
+    });
+    if (r.ok) store.set(flag, true);
+  } catch(e){}
+}
+async function fetchDailyStats(day){
+  if (!scoreboardOn()) return null;
+  try {
+    const r = await fetch(SCOREBOARD.url + '/rest/v1/rpc/daily_stats', {
+      method: 'POST',
+      headers: { apikey: SCOREBOARD.key, Authorization: 'Bearer ' + SCOREBOARD.key, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ d: day })
+    });
+    if (!r.ok) return null;
+    return await r.json(); // [{ score, n }, ...]
+  } catch(e){ return null; }
+}
+function renderGlobal(stats, myScore){
+  const el = $('d-global'); if (!el) return;
+  if (!stats || !stats.length){ el.innerHTML = ''; return; }
+  const counts = [0,0,0,0,0,0];
+  for (const row of stats){ const s = Math.max(0, Math.min(5, row.score|0)); counts[s] += Number(row.n) || 0; }
+  const total = counts.reduce((a,b)=>a+b,0);
+  if (!total){ el.innerHTML = ''; return; }
+  let below = 0; for (let s = 0; s < myScore; s++) below += counts[s];
+  const beat = Math.round(100 * below / total);
+  const max = Math.max(...counts);
+  let bars = '';
+  for (let s = 5; s >= 0; s--){
+    const pct = Math.round(100 * counts[s] / total);
+    const w = max ? Math.round(100 * counts[s] / max) : 0;
+    bars += '<div class="gb-row' + (s === myScore ? ' me' : '') + '"><span class="gb-k">' + s + '/5</span>' +
+      '<span class="gb-bar"><i style="width:' + w + '%"></i></span><span class="gb-n">' + pct + '%</span></div>';
+  }
+  el.innerHTML = '<div class="stat-sub" style="margin-top:22px">Today, worldwide</div>' +
+    '<div class="gb-head"><b>' + total.toLocaleString() + '</b> played &middot; you beat <b>' + beat + '%</b></div>' +
+    '<div class="gb-dist">' + bars + '</div>';
+}
+async function loadGlobal(day, myScore){
+  if (!scoreboardOn()) return;
+  renderGlobal(await fetchDailyStats(day), myScore);
+}
+
 // ---------- daily challenge (same five for everyone, one try a day) ----------
 let D = null, D_share = '';
 function pad2(n){ return String(n).padStart(2,'0'); }
@@ -1172,6 +1244,7 @@ function finishDaily(){
   }
   if (score === 5){ recordPerfectDaily(); FX.play('win'); celebrate(); } else if (score >= 3){ FX.play('good'); }
   bumpGame('daily');
+  submitDailyScore(D.num, score); // fire-and-forget; no-op unless a scoreboard is configured
   showDailyResult(rec);
 }
 function showDailyResult(rec){
@@ -1190,10 +1263,12 @@ function showDailyResult(rec){
       (streak > 1 ? '<div class="dd-streak">🔥 ' + streak + '-day streak</div>' : '') +
       '<div class="dd-next">Next daily in <b id="d-countdown">…</b></div>' +
     '</div>' +
+    '<div id="d-global"></div>' +
     '<button class="btn secondary" onclick="shareDaily()">' + (navigator.share ? 'Share result' : 'Copy result') + '</button>' +
     '<button class="btn ghost" onclick="reviewDaily()">Review answers</button>' +
     '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
   startCountdown();
+  loadGlobal(rec.num, rec.score); // async; fills #d-global only if a scoreboard is configured
 }
 function reviewDaily(){
   const rec = store.get('daily:' + todayKey(), null); if (!rec) return;
