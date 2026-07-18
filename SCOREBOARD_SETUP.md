@@ -1,13 +1,13 @@
-# Global Daily Scoreboard — setup (~5 minutes)
+# Daily Leaderboard — setup (~5 minutes)
 
-The game works fully without this. Turn it on to show a **worldwide Daily
-distribution** on the result screen: how many people played today, the score
-spread, and what percent of players you beat.
+The game works fully without this. Turn it on to show a **shared Daily
+leaderboard** on the result screen: everyone who played today, ranked by score
+(🥇🥈🥉), plus a "N played" count. Ideal for a friend group.
 
 It uses a free [Supabase](https://supabase.com) project as the shared backend
-(GitHub Pages can only serve the page — it can't store scores). Everything the
-browser sends is a single number (today's daily number + your 0–5 score); no
-accounts, no personal data.
+(GitHub Pages can only serve the page — it can't store scores). The browser
+sends today's daily number, your 0–5 score, and a display name you choose; no
+account or personal data.
 
 ## 1. Create a free Supabase project
 1. Go to supabase.com, sign up, and create a new project (any name/region).
@@ -20,6 +20,7 @@ Open **SQL Editor** in your project and run this once:
 create table if not exists daily_scores (
   id         bigint generated always as identity primary key,
   day        int  not null,
+  name       text not null,
   score      int  not null check (score between 0 and 5),
   created_at timestamptz not null default now()
 );
@@ -29,26 +30,32 @@ alter table daily_scores enable row level security;
 -- allow anonymous inserts of sane rows only
 create policy "insert daily score" on daily_scores
   for insert to anon
-  with check (score between 0 and 5 and day between 1 and 100000);
+  with check (
+    score between 0 and 5
+    and day between 1 and 100000
+    and char_length(name) between 1 and 16
+  );
 
--- return only an aggregate distribution (raw rows stay private)
-create or replace function daily_stats(d int)
-returns table(score int, n bigint)
+-- return today's ranked board (raw table stays private)
+create or replace function daily_board(d int)
+returns table(name text, score int)
 language sql security definer set search_path = public as $$
-  select score, count(*)::bigint
+  select name, score
   from daily_scores
   where day = d
-  group by score;
+  order by score desc, created_at asc
+  limit 50;
 $$;
 
-grant execute on function daily_stats(int) to anon;
+grant execute on function daily_board(int) to anon;
 ```
 
-> Note: anonymous clients can **insert** and can call **daily_stats**, but they
-> cannot read the raw `daily_scores` rows (no select policy). That keeps the
-> feature simple while limiting scraping/abuse. It is not cheat-proof — anyone
-> could POST a fake score from the browser. For a hardened version, move the
-> write behind a Cloudflare Worker (ask and I'll build it).
+> Note: anonymous clients can **insert** and can call **daily_board**, but they
+> cannot read the raw `daily_scores` rows directly. The game shows one row per
+> name (best score first). It is not cheat-proof — a determined person could
+> POST a fake score or name from the browser. For a friend group that's fine;
+> for a hardened version, move the write behind a Cloudflare Worker (ask and
+> I'll build it).
 
 ## 3. Get your two public values
 In **Project Settings → API**, copy:

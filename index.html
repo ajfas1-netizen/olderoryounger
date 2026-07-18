@@ -271,18 +271,19 @@
   .rc-tag{font-size:10px; font-weight:800; letter-spacing:1px; text-transform:uppercase; color:var(--green);
     border:1px solid rgba(79,224,160,.4); border-radius:99px; padding:2px 8px; margin-left:auto;}
   .rc-fact{color:var(--dim); font-size:12.5px; line-height:1.4; margin-top:8px; padding-top:8px; border-top:1px solid var(--line);}
-  /* ---------- global scoreboard ---------- */
-  .gb-head{text-align:center; color:var(--dim); font-size:14px; margin:2px 0 12px;}
-  .gb-head b{color:var(--ink);}
-  .gb-dist{display:flex; flex-direction:column; gap:7px;}
-  .gb-row{display:flex; align-items:center; gap:10px; font-size:13px; font-weight:700;}
-  .gb-row .gb-k{width:34px; color:var(--dim);}
-  .gb-row .gb-bar{flex:1; height:15px; background:rgba(255,255,255,.06); border-radius:99px; overflow:hidden;}
-  .gb-row .gb-bar i{display:block; height:100%; border-radius:99px; background:linear-gradient(90deg,var(--cyan),var(--purple)); transition:width .5s ease;}
-  .gb-row .gb-n{width:42px; text-align:right; color:var(--dim);}
-  .gb-row.me .gb-k{color:var(--yellow);}
-  .gb-row.me .gb-bar i{background:linear-gradient(90deg,var(--yellow),var(--pink));}
-  .gb-row.me .gb-n{color:var(--yellow);}
+  /* ---------- daily leaderboard ---------- */
+  .join{display:flex; gap:8px; margin-top:8px;}
+  .join input{flex:1; margin-top:0;}
+  .join .btn{width:auto; margin-top:0; white-space:nowrap; padding:13px 16px;}
+  .lb{display:flex; flex-direction:column; gap:7px;}
+  .lb-row{display:flex; align-items:center; gap:12px; background:rgba(255,255,255,.03); border:1px solid var(--line);
+    border-radius:12px; padding:11px 13px; font-weight:700; font-size:15px;}
+  .lb-rank{width:28px; text-align:center; color:var(--dim); font-size:16px;}
+  .lb-name{flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .lb-score{color:var(--yellow); font-weight:800;}
+  .lb-row.me{border-color:rgba(55,219,230,.5); background:linear-gradient(135deg, rgba(55,219,230,.12), rgba(165,92,255,.12));}
+  .lb-row.me .lb-score{color:var(--cyan);}
+  #d-global .flag{display:block; margin:12px auto 0;}
   /* versus / older-or-younger mode */
   .vs-q{text-align:center; font-size:15px; color:var(--dim); font-weight:700; margin:2px 0 14px;}
   .vs-q b{color:var(--ink);}
@@ -1106,8 +1107,8 @@ function chooseVersus(key){
   window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
 }
 
-// ================= GLOBAL SCOREBOARD (optional) =================
-// Off by default. To turn on a worldwide Daily scoreboard, create a free
+// ================= DAILY LEADERBOARD (optional) =================
+// Off by default. To turn on a shared Daily leaderboard, create a free
 // Supabase project, run the SQL in SCOREBOARD_SETUP.md, then fill in these
 // two public values (or set window.BMT_SCOREBOARD before this script runs):
 const SCOREBOARD = (typeof window !== 'undefined' && window.BMT_SCOREBOARD) || {
@@ -1115,55 +1116,67 @@ const SCOREBOARD = (typeof window !== 'undefined' && window.BMT_SCOREBOARD) || {
   key: ''    // your project's public anon key (safe to expose)
 };
 const scoreboardOn = () => !!(SCOREBOARD.url && SCOREBOARD.key);
+function playerName(){ return (store.get('name', '') || '').trim().slice(0, 16); }
+function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 async function submitDailyScore(day, score){
   if (!scoreboardOn()) return;
-  const flag = 'dsent:' + day;
-  if (store.get(flag, false)) return; // one submission per day per device
+  const name = playerName(); if (!name) return; // need a name to post
+  const flag = 'dsent:' + day; if (store.get(flag, false)) return; // one post per day per device
   try {
     const r = await fetch(SCOREBOARD.url + '/rest/v1/daily_scores', {
       method: 'POST',
       headers: { apikey: SCOREBOARD.key, Authorization: 'Bearer ' + SCOREBOARD.key, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ day, score })
+      body: JSON.stringify({ day, score, name })
     });
     if (r.ok) store.set(flag, true);
   } catch(e){}
 }
-async function fetchDailyStats(day){
+async function fetchBoard(day){
   if (!scoreboardOn()) return null;
   try {
-    const r = await fetch(SCOREBOARD.url + '/rest/v1/rpc/daily_stats', {
+    const r = await fetch(SCOREBOARD.url + '/rest/v1/rpc/daily_board', {
       method: 'POST',
       headers: { apikey: SCOREBOARD.key, Authorization: 'Bearer ' + SCOREBOARD.key, 'Content-Type': 'application/json' },
       body: JSON.stringify({ d: day })
     });
     if (!r.ok) return null;
-    return await r.json(); // [{ score, n }, ...]
+    return await r.json(); // [{ name, score }, ...] ordered best-first
   } catch(e){ return null; }
 }
-function renderGlobal(stats, myScore){
-  const el = $('d-global'); if (!el) return;
-  if (!stats || !stats.length){ el.innerHTML = ''; return; }
-  const counts = [0,0,0,0,0,0];
-  for (const row of stats){ const s = Math.max(0, Math.min(5, row.score|0)); counts[s] += Number(row.n) || 0; }
-  const total = counts.reduce((a,b)=>a+b,0);
-  if (!total){ el.innerHTML = ''; return; }
-  let below = 0; for (let s = 0; s < myScore; s++) below += counts[s];
-  const beat = Math.round(100 * below / total);
-  const max = Math.max(...counts);
-  let bars = '';
-  for (let s = 5; s >= 0; s--){
-    const pct = Math.round(100 * counts[s] / total);
-    const w = max ? Math.round(100 * counts[s] / max) : 0;
-    bars += '<div class="gb-row' + (s === myScore ? ' me' : '') + '"><span class="gb-k">' + s + '/5</span>' +
-      '<span class="gb-bar"><i style="width:' + w + '%"></i></span><span class="gb-n">' + pct + '%</span></div>';
+async function loadBoard(day, myScore){
+  const el = $('d-global'); if (!el || !scoreboardOn()) return;
+  if (!playerName()){
+    el.innerHTML = '<div class="stat-sub" style="margin-top:22px">Daily leaderboard</div>' +
+      '<div class="join"><input id="name-in" maxlength="16" placeholder="Your name" autocomplete="off">' +
+      '<button class="btn secondary" onclick="joinBoard()">Post my score</button></div>';
+    const inp = $('name-in'); if (inp) inp.addEventListener('keydown', e => { if (e.key === 'Enter') joinBoard(); });
+    return;
   }
-  el.innerHTML = '<div class="stat-sub" style="margin-top:22px">Today, worldwide</div>' +
-    '<div class="gb-head"><b>' + total.toLocaleString() + '</b> played &middot; you beat <b>' + beat + '%</b></div>' +
-    '<div class="gb-dist">' + bars + '</div>';
+  await submitDailyScore(day, myScore);
+  renderBoard(await fetchBoard(day), day);
 }
-async function loadGlobal(day, myScore){
-  if (!scoreboardOn()) return;
-  renderGlobal(await fetchDailyStats(day), myScore);
+function joinBoard(){
+  const v = ($('name-in') ? $('name-in').value : '').trim().slice(0, 16);
+  if (!v){ toast('bad', 'Enter a name first.'); return; }
+  store.set('name', v);
+  const rec = store.get('daily:' + todayKey(), null); if (rec) loadBoard(rec.num, rec.score);
+}
+function changeName(){ store.set('name', ''); const rec = store.get('daily:' + todayKey(), null); if (rec) loadBoard(rec.num, rec.score); }
+function renderBoard(rows, day){
+  const el = $('d-global'); if (!el) return;
+  if (!rows || !rows.length){ el.innerHTML = ''; return; }
+  const seen = new Set(), board = [];
+  for (const r of rows){ const k = (r.name || '').toLowerCase(); if (!k || seen.has(k)) continue; seen.add(k); board.push(r); } // one row per name (best-first)
+  const me = playerName().toLowerCase();
+  const list = board.map((r, i) => {
+    const mine = (r.name || '').toLowerCase() === me;
+    const rank = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1) + '.';
+    return '<div class="lb-row' + (mine ? ' me' : '') + '"><span class="lb-rank">' + rank + '</span>' +
+      '<span class="lb-name">' + escapeHtml(r.name) + '</span><span class="lb-score">' + r.score + '/5</span></div>';
+  }).join('');
+  el.innerHTML = '<div class="stat-sub" style="margin-top:22px">Daily #' + day + ' &middot; ' + board.length + ' played</div>' +
+    '<div class="lb">' + list + '</div>' +
+    '<button class="flag" onclick="changeName()">Change name</button>';
 }
 
 // ---------- daily challenge (same five for everyone, one try a day) ----------
@@ -1244,8 +1257,7 @@ function finishDaily(){
   }
   if (score === 5){ recordPerfectDaily(); FX.play('win'); celebrate(); } else if (score >= 3){ FX.play('good'); }
   bumpGame('daily');
-  submitDailyScore(D.num, score); // fire-and-forget; no-op unless a scoreboard is configured
-  showDailyResult(rec);
+  showDailyResult(rec); // loadBoard (below) posts + shows the leaderboard when configured
 }
 function showDailyResult(rec){
   show('daily');
@@ -1268,7 +1280,7 @@ function showDailyResult(rec){
     '<button class="btn ghost" onclick="reviewDaily()">Review answers</button>' +
     '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
   startCountdown();
-  loadGlobal(rec.num, rec.score); // async; fills #d-global only if a scoreboard is configured
+  loadBoard(rec.num, rec.score); // async; fills #d-global only if a leaderboard is configured
 }
 function reviewDaily(){
   const rec = store.get('daily:' + todayKey(), null); if (!rec) return;
