@@ -103,8 +103,20 @@
   .btn.ghost:active{background:rgba(255,255,255,.09);}
   .btn.small{width:auto; display:inline-block; padding:10px 15px; font-size:14px; margin:8px 6px 0 0; border-radius:99px;}
   .btn:disabled{opacity:.4;}
+  .btn{position:relative;}
   .btn .bt-t{display:block; font-size:18px; line-height:1.1;}
   .btn .bt-s{display:block; font-size:12.5px; font-weight:600; opacity:.82; margin-top:3px;}
+  .btn .bt-i{position:absolute; top:9px; right:10px; width:24px; height:24px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:800; font-style:normal;
+    background:rgba(0,0,0,.16); color:inherit; opacity:.7; cursor:pointer;}
+  .btn .bt-i:hover{opacity:1;} .btn .bt-i:active{transform:scale(.9);}
+  /* ---------- pre-game intro modal ---------- */
+  .ov-box.intro{border-color:var(--cyan);}
+  .ov-box.intro .intro-ic{font-size:42px; line-height:1;}
+  .ov-box.intro .ov-title{margin-top:8px;}
+  .intro-fmt{display:inline-block; margin-top:12px; font-size:12.5px; font-weight:800; letter-spacing:1px; text-transform:uppercase;
+    color:var(--yellow); background:rgba(255,207,63,.12); border:1px solid rgba(255,207,63,.35); padding:6px 14px; border-radius:99px;}
+  .intro-how{color:var(--dim); font-size:14.5px; line-height:1.5; margin-top:14px;}
   .screen{display:none;}
   .screen.active{display:block; animation:fade .25s ease;}
   @keyframes fade{from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:none;}}
@@ -116,9 +128,10 @@
     border-radius:20px; padding:24px 18px; text-align:center;
     border:1px solid rgba(255,255,255,.12); position:sticky; top:calc(10px + env(safe-area-inset-top, 0px)); z-index:5;
     box-shadow:0 20px 46px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07), 0 0 40px rgba(165,92,255,.10);}
-  .cat{display:inline-block; font-size:11px; font-weight:800; letter-spacing:1.6px; text-transform:uppercase;
-    color:var(--cyan); background:rgba(55,219,230,.12); border:1px solid rgba(55,219,230,.28);
-    padding:5px 12px; border-radius:99px; margin-bottom:14px;}
+  .cat{display:inline-block; font-size:12.5px; font-weight:900; letter-spacing:1.8px; text-transform:uppercase;
+    color:#062a30; background:linear-gradient(135deg,var(--cyan),#8fe9dd);
+    padding:6px 15px; border-radius:99px; margin-bottom:14px;
+    box-shadow:0 5px 18px rgba(55,219,230,.38);}
   .card-title{font-size:27px; font-weight:800; line-height:1.13; margin:0; letter-spacing:-.5px;}
   .hint{color:var(--dim); font-size:13px; margin-top:8px;}
   .timeline{margin-top:14px;}
@@ -344,10 +357,10 @@
       <div class="hero-rule"></div>
       <p class="sub">Snacks, toys, songs, movies &mdash; some of it is way older than you think.</p>
     </header>
-    <button class="btn daily" id="daily-btn" onclick="startDaily()"></button>
-    <button class="btn primary" onclick="startSolo()"><span class="bt-t">Line &rsquo;Em Up</span><span class="bt-s">Solo &middot; build the timeline</span></button>
-    <button class="btn versus" onclick="startVersus()"><span class="bt-t">Older or Younger?</span><span class="bt-s">Head&#8209;to&#8209;head &middot; pick the older one</span></button>
-    <button class="btn secondary" onclick="show('party-setup')"><span class="bt-t">Party Pass</span><span class="bt-s">Pass the phone &middot; first to 10</span></button>
+    <button class="btn daily" id="daily-btn" onclick="playMode('daily')"></button>
+    <button class="btn primary" onclick="playMode('solo')"><span class="bt-t">Line &rsquo;Em Up</span><span class="bt-s">Solo &middot; build the timeline</span><span class="bt-i" onclick="event.stopPropagation();showIntro('solo')" aria-label="How to play">i</span></button>
+    <button class="btn versus" onclick="playMode('versus')"><span class="bt-t">Older or Younger?</span><span class="bt-s">Head&#8209;to&#8209;head &middot; pick the older one</span><span class="bt-i" onclick="event.stopPropagation();showIntro('versus')" aria-label="How to play">i</span></button>
+    <button class="btn secondary" onclick="playMode('party')"><span class="bt-t">Party Pass</span><span class="bt-s">Pass the phone &middot; first to 10</span><span class="bt-i" onclick="event.stopPropagation();showIntro('party')" aria-label="How to play">i</span></button>
     <div class="cat-picker" id="cat-picker">
       <button class="cat-toggle" onclick="toggleCatPanel()" aria-expanded="false">
         <span>Categories in play</span>
@@ -1413,6 +1426,41 @@ function startCountdown(){
     el.textContent = pad2(h)+':'+pad2(m)+':'+pad2(s);
   };
   tick(); dailyTimer = setInterval(tick, 1000);
+}
+
+// ---------- pre-game intro / rules ----------
+const INTRO = {
+  solo:   { icon:'📈', title:"Line ’Em Up", fmt:'3 lives · longest run wins',
+    how:"You're dealt one card at a time. Tap where it belongs in your timeline — oldest at the top, newest at the bottom. Get it right and keep building." },
+  versus: { icon:'⚖️', title:'Older or Younger?', fmt:'Until you get one wrong',
+    how:"Two things appear side by side. Tap the one you think is older — the one that came first. Keep your streak alive as long as you can." },
+  daily:  { icon:'🗓️', title:'Daily Five', fmt:'5 matchups · one try a day',
+    how:"Five quick “which is older?” matchups — the same five for everyone today. Go for 5/5 and keep your daily streak alive." },
+  party:  { icon:'🎉', title:'Party Pass', fmt:'First to 10 cards',
+    how:"Pass the phone around. On your turn, place the card into your own timeline in the right spot. Miss it and the next player can steal it." },
+};
+function seenIntro(k){ return (store.get('introsSeen', []) || []).includes(k); }
+function markIntro(k){ const a = store.get('introsSeen', []) || []; if (!a.includes(k)){ a.push(k); store.set('introsSeen', a); } }
+function startMode(k){ if (k==='solo') startSolo(); else if (k==='versus') startVersus(); else if (k==='daily') startDaily(); else if (k==='party') show('party-setup'); }
+function playMode(k){ if (seenIntro(k)) startMode(k); else showIntro(k); }
+function showIntro(k){
+  const it = INTRO[k]; if (!it){ startMode(k); return; }
+  const ov = document.createElement('div'); ov.className = 'overlay';
+  const box = document.createElement('div'); box.className = 'ov-box intro';
+  box.innerHTML =
+    '<div class="intro-ic">' + it.icon + '</div>' +
+    '<div class="ov-title">' + it.title + '</div>' +
+    '<div class="intro-fmt">' + it.fmt + '</div>' +
+    '<div class="intro-how">' + it.how + '</div>';
+  const actions = document.createElement('div'); actions.className = 'ov-actions';
+  const back = document.createElement('button'); back.className = 'btn ghost'; back.textContent = 'Back';
+  const play = document.createElement('button'); play.className = 'btn primary'; play.textContent = 'Play';
+  back.onclick = (e) => { e.stopPropagation(); ov.remove(); };
+  play.onclick = (e) => { e.stopPropagation(); markIntro(k); ov.remove(); startMode(k); };
+  actions.appendChild(back); actions.appendChild(play); box.appendChild(actions);
+  box.addEventListener('click', e => e.stopPropagation());
+  ov.appendChild(box); ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
 }
 
 // init
