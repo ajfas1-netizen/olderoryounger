@@ -193,6 +193,9 @@
   .ov-actions .btn{margin-top:0;}
   .ov-box.confirm{border-color:var(--purple);}
   .btn.versus{background:linear-gradient(135deg,#ffb03f,var(--pink)); color:#2a0f18; box-shadow:0 12px 28px rgba(255,140,80,.26);}
+  .btn.bestof{background:linear-gradient(135deg,var(--purple),var(--cyan)); color:#fff; box-shadow:0 12px 28px rgba(165,92,255,.26);}
+  .bo-lengths{display:flex; flex-direction:column; gap:10px; margin-top:18px;}
+  .bo-lengths .btn{margin-top:0;}
   /* ---------- category picker ---------- */
   .cat-picker{margin-top:12px; background:rgba(255,255,255,.03); border:1px solid var(--line); border-radius:var(--radius);}
   .cat-toggle{width:100%; display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -360,6 +363,7 @@
     <button class="btn daily" id="daily-btn" onclick="playMode('daily')"></button>
     <button class="btn primary" onclick="playMode('solo')"><span class="bt-t">Line &rsquo;Em Up</span><span class="bt-s">Solo &middot; build the timeline</span><span class="bt-i" onclick="event.stopPropagation();showIntro('solo')" aria-label="How to play">i</span></button>
     <button class="btn versus" onclick="playMode('versus')"><span class="bt-t">Older or Younger?</span><span class="bt-s">Head&#8209;to&#8209;head &middot; pick the older one</span><span class="bt-i" onclick="event.stopPropagation();showIntro('versus')" aria-label="How to play">i</span></button>
+    <button class="btn bestof" onclick="startBestOfSetup()"><span class="bt-t">Best Of</span><span class="bt-s">Head&#8209;to&#8209;head &middot; a set of 5, 10 or 20</span></button>
     <button class="btn secondary" onclick="playMode('party')"><span class="bt-t">Party Pass</span><span class="bt-s">Pass the phone &middot; first to 10</span><span class="bt-i" onclick="event.stopPropagation();showIntro('party')" aria-label="How to play">i</span></button>
     <div class="cat-picker" id="cat-picker">
       <button class="cat-toggle" onclick="toggleCatPanel()" aria-expanded="false">
@@ -458,6 +462,22 @@
     <div class="vs-q">Which one is <b>older</b>? Tap it.</div>
     <div id="d-cards"></div>
     <div id="d-result"></div>
+  </section>
+
+  <!-- BEST OF · fixed-length head-to-head -->
+  <section id="bestof" class="screen">
+    <div class="topbar">
+      <span class="brand">Best Of</span>
+      <button class="quit" onclick="confirmQuit()">&times; Quit</button>
+    </div>
+    <div class="hud">
+      <span class="pill">Round <b id="bo-round"></b></span>
+      <span class="pill streak">Score <b id="bo-score"></b></span>
+      <span class="pill">Best <b id="bo-best"></b></span>
+    </div>
+    <div class="vs-q">Which one is <b>older</b>? Tap it.</div>
+    <div id="bo-cards"></div>
+    <div id="bo-result"></div>
   </section>
 
   <!-- VERSUS · Older or Younger -->
@@ -628,7 +648,7 @@ function renderStats(){
   ];
   let html = '<div class="stat-grid">' + tiles.map(t=>'<div class="stat-tile"><div class="st-n">'+t[1]+'</div><div class="st-l">'+t[0]+'</div></div>').join('') + '</div>';
   html += '<div class="stat-sub">By mode</div><div class="stat-modes">' +
-    [['Daily','daily'],['Solo','solo'],['Head-to-Head','versus'],['Party','party']].map(m=>'<span class="pill">'+m[0]+' <b>'+(g[m[1]]||0)+'</b></span>').join('') + '</div>';
+    [['Daily','daily'],['Line ’Em Up','solo'],['Older or Younger?','versus'],['Best Of','bestof'],['Party','party']].map(m=>'<span class="pill">'+m[0]+' <b>'+(g[m[1]]||0)+'</b></span>').join('') + '</div>';
   const cats = CAT_KEYS.map(k=>({k, e:s.cat[k]})).filter(x=>x.e && x.e.t > 0)
     .map(x=>({k:x.k, t:x.e.t, c:x.e.c, p:Math.round(100*x.e.c/x.e.t)})).sort((a,b)=>b.p-a.p);
   html += '<div class="stat-sub">Accuracy by category</div>';
@@ -987,6 +1007,8 @@ function copyResult(){
   } else if (lastResult && lastResult.mode === 'versus'){
     const n = lastResult.streak;
     txt = 'Before My Time (or maybe not): I called ' + n + ' "which is older?" matchup' + (n === 1 ? '' : 's') + ' right in a row. Think you can beat it?';
+  } else if (lastResult && lastResult.mode === 'bestof'){
+    txt = 'Before My Time (or maybe not): I scored ' + lastResult.score + '/' + lastResult.n + ' in Best of ' + lastResult.n + '. Your turn.';
   } else {
     txt = 'Before My Time (or maybe not): ' + (lastResult && lastResult.winner ? lastResult.winner + ' took the table.' : 'We played. It got loud.');
   }
@@ -1461,6 +1483,113 @@ function showIntro(k){
   box.addEventListener('click', e => e.stopPropagation());
   ov.appendChild(box); ov.addEventListener('click', () => ov.remove());
   document.body.appendChild(ov);
+}
+
+// ---------- best of N (fixed-length head-to-head) ----------
+let BO = null;
+function startBestOfSetup(){
+  const ov = document.createElement('div'); ov.className = 'overlay';
+  const box = document.createElement('div'); box.className = 'ov-box intro';
+  box.innerHTML =
+    '<div class="intro-ic">🎯</div><div class="ov-title">Best Of</div>' +
+    '<div class="intro-fmt">Play a set · get a score</div>' +
+    '<div class="intro-how">Same “which is older?” matchups, but a fixed length — no sudden death. Play them all and get a score. Pick your length:</div>';
+  const row = document.createElement('div'); row.className = 'bo-lengths';
+  [5, 10, 20].forEach(n => {
+    const b = document.createElement('button'); b.className = 'btn primary'; b.textContent = 'Best of ' + n;
+    b.onclick = (e) => { e.stopPropagation(); ov.remove(); startBestOf(n); };
+    row.appendChild(b);
+  });
+  box.appendChild(row);
+  box.addEventListener('click', e => e.stopPropagation());
+  ov.appendChild(box); ov.addEventListener('click', () => ov.remove());
+  document.body.appendChild(ov);
+}
+function startBestOf(n){
+  const pool = poolIndices();
+  if (pool.length < 4 || new Set(pool.map(i=>CARDS[i].y)).size < 2){ notEnoughCats(); return; }
+  bumpGame('bestof');
+  BO = { queue: shuffle(pool.slice()), n, i:0, correct:0, results:[], rounds:[], done:false };
+  drawBestOf(); show('bestof');
+}
+function boPull(){ if (!BO.queue.length) BO.queue = shuffle(poolIndices()); return BO.queue.pop(); }
+function drawBestOf(){
+  let a = boPull(), b = boPull(), g = 0;
+  while (CARDS[a].y === CARDS[b].y && g++ < 40) b = boPull();
+  BO.a = a; BO.b = b; BO.rounds.push([a, b]); BO.done = false;
+  renderBestOf();
+}
+function renderBestOf(){
+  $('bo-round').textContent = (BO.i + 1) + '/' + BO.n;
+  $('bo-score').textContent = BO.correct;
+  $('bo-best').textContent = store.get('bestof:' + BO.n, 0) + '/' + BO.n;
+  $('bo-cards').innerHTML = vCardHtml('boa', CARDS[BO.a]) + '<div class="vs-badge"><span>VS</span></div>' + vCardHtml('bob', CARDS[BO.b]);
+  $('bo-result').innerHTML = '';
+  $('vc-boa').onclick = () => chooseBestOf('boa');
+  $('vc-bob').onclick = () => chooseBestOf('bob');
+  window.scrollTo(0, 0);
+}
+function chooseBestOf(key){
+  if (!BO || BO.done) return; BO.done = true;
+  const ca = CARDS[BO.a], cb = CARDS[BO.b];
+  const aOlder = ca.y < cb.y, correct = key === (aOlder ? 'boa' : 'bob');
+  BO.results.push(correct); if (correct) BO.correct++;
+  const elA = $('vc-boa'), elB = $('vc-bob'); elA.onclick = null; elB.onclick = null;
+  elA.classList.add('reveal', aOlder ? 'older' : 'newer');
+  elB.classList.add('reveal', aOlder ? 'newer' : 'older');
+  elA.querySelector('.tag-ow').textContent = aOlder ? 'Older' : 'Newer';
+  elB.querySelector('.tag-ow').textContent = aOlder ? 'Newer' : 'Older';
+  countUp(elA.querySelector('.vyear'), ca.y); countUp(elB.querySelector('.vyear'), cb.y);
+  recordAnswer(correct, null, false);
+  FX.play(correct ? 'good' : 'bad'); FX.buzz(correct ? 18 : [40,30,40]);
+  $('bo-score').textContent = BO.correct;
+  const older = aOlder ? ca : cb, last = BO.i >= BO.n - 1;
+  $('bo-result').innerHTML =
+    '<div class="vs-banner ' + (correct ? 'good' : 'bad') + '">' + (correct ? 'Correct' : 'Nope') + ' — ' + older.t + ' (' + older.y + ') is older.</div>' +
+    '<button class="btn primary" onclick="nextBestOf()">' + (last ? 'See score' : 'Next matchup') + '</button>';
+  window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+}
+function nextBestOf(){ BO.i++; if (BO.i >= BO.n) finishBestOf(); else drawBestOf(); }
+function finishBestOf(){
+  const score = BO.correct, n = BO.n, bk = 'bestof:' + n;
+  if (score > store.get(bk, 0)) store.set(bk, score);
+  lastResult = { mode:'bestof', score, n };
+  if (score === n){ FX.play('win'); celebrate(); } else if (score >= Math.ceil(n * 0.6)){ FX.play('good'); }
+  showBestOfScore();
+}
+function showBestOfScore(){
+  const n = BO.n, score = BO.correct, bk = 'bestof:' + n;
+  $('bo-round').textContent = n + '/' + n; $('bo-score').textContent = score; $('bo-best').textContent = store.get(bk, 0) + '/' + n;
+  $('bo-cards').innerHTML = '';
+  const emoji = BO.results.map(r => r ? '🟩' : '⬛').join('');
+  $('bo-result').innerHTML =
+    '<div class="daily-done"><div class="dd-score">' + score + '<span>/' + n + '</span></div>' +
+      '<div class="dd-emoji">' + emoji + '</div>' +
+      '<div class="dd-next">Best of ' + n + ' &middot; your best <b>' + store.get(bk, 0) + '/' + n + '</b></div></div>' +
+    '<button class="btn secondary" onclick="copyResult()">Copy result</button>' +
+    '<button class="btn ghost" onclick="reviewBestOf()">Review answers</button>' +
+    '<button class="btn primary" onclick="startBestOf(' + n + ')">Play again</button>' +
+    '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
+  window.scrollTo(0, 0);
+}
+function reviewBestOf(){
+  let rows = '';
+  BO.rounds.forEach((p, i) => {
+    const ca = CARDS[p[0]], cb = CARDS[p[1]], aOlder = ca.y < cb.y;
+    const older = aOlder ? ca : cb, newer = aOlder ? cb : ca, correct = BO.results[i];
+    rows +=
+      '<div class="rc-row"><div class="rc-head"><span class="rc-q">Q' + (i+1) + '</span>' +
+        '<span class="rc-mark ' + (correct ? 'ok' : 'no') + '">' + (correct ? '✓ you got it' : '✗ missed') + '</span></div>' +
+        '<div class="rc-item older"><span class="rc-yr">' + older.y + '</span><span class="rc-nm">' + older.t + '</span><span class="rc-tag">older</span></div>' +
+        '<div class="rc-item"><span class="rc-yr">' + newer.y + '</span><span class="rc-nm">' + newer.t + '</span></div>' +
+        '<div class="rc-fact">' + older.f + '</div></div>';
+  });
+  $('bo-result').innerHTML =
+    '<div class="rc-title">Best of ' + BO.n + ' recap &middot; ' + BO.correct + '/' + BO.n + '</div>' +
+    '<div class="recap">' + rows + '</div>' +
+    '<button class="btn secondary" onclick="showBestOfScore()">Back to score</button>' +
+    '<button class="btn ghost" onclick="show(\'home\')">Home</button>';
+  window.scrollTo(0, 0);
 }
 
 // init
